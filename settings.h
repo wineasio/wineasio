@@ -17,9 +17,16 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-static const char* ENV_INPUTS = "ASIO_INPUTS";
-static const char* ENV_OUTPUTS = "ASIO_OUTPUTS";
+static const char* ENVVAR_INPUTS = "_INPUTS";
+static const char* ENVVAR_OUTPUTS = "_OUTPUTS";
+static const char* ENVVAR_INPORTNAMEPREFIX = "INPORTNAME";
+static const char* ENVVAR_OUTPORTNAMEPREFIX = "OUTPORTNAME";
+static const char* ENVVAR_INMAP = "_INPORT";
+static const char* ENVVAR_OUTMAP = "_OUTPORT";
+static const char* DEFAULT_PREFIX = "ASIO";
+static const char* DEFAULT_INPORT = "input_";
+static const char* DEFAULT_OUTPORT = "output_";
+static const int   DEFAULT_NUMINPUTS = 2;
+static const int   DEFAULT_NUMOUTPUTS = 2;
 static const char* USERCFG = ".wineasiocfg";
 static const char* SITECFG = "/etc/default/wineasiocfg";
-static const char* MAP_INPORT = "INPORT";
-static const char* MAP_OUTPORT = "OUTPORT";

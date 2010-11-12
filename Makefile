@@ -63,7 +63,7 @@ RC = wrc
 
 ### Generic targets
 
-all: $(SUBDIRS) $(DLLS:%=%.so) $(EXES:%=%.so)
+all: asio.h $(SUBDIRS) $(DLLS:%=%.so) $(EXES:%=%.so)
 
 ### Build rules
 
@@ -103,6 +103,9 @@ $(SUBDIRS:%=%/__clean__): dummy
 
 $(EXTRASUBDIRS:%=%/__clean__): dummy
 	-cd `dirname $@` && $(RM) $(CLEAN_FILES)
+
+distclean:: clean
+	$(RM) asio.h
 
 ### Target specific build rules
 DEFLIB = $(LIBRARY_PATH) $(LIBRARIES) $(DLL_PATH)
