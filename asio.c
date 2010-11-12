@@ -36,11 +36,11 @@ static const char* DEFAULT_OUTPORT = "Output";
 #endif
 #include "port.h"
 
-//#include <stdarg.h>
 #include <stdio.h>
 #include <dlfcn.h>
 #include <sys/time.h>
 #include <stdlib.h>
+#include <memory.h>
 
 #include <wine/windows/windef.h>
 #include <wine/windows/winbase.h>
@@ -157,7 +157,7 @@ enum
 
 typedef struct _Channel {
    ASIOBool active;
-   int *buffer;
+   char* buffer;
    jack_ringbuffer_t *ring;
    const char  *port_name;
    jack_port_t *port;
@@ -184,28 +184,17 @@ struct IWineASIOImpl
     ASIOBufferInfo      *bufferInfos;
     ASIOCallbacks       *callbacks;
     char                error_message[256];
-//  long                in_map[MAX_INPUTS];
-//  long                out_map[MAX_OUTPUTS];
-//  void                *input_buffers[MAX_INPUTS][2];
-//  void                *output_buffers[MAX_OUTPUTS][2];
     long                active_inputs;
     long                active_outputs;
     BOOL                time_info_mode;
     BOOL                tc_read;
     long                state;
-//  unsigned int        sample_size;
-//  int                 sample_type;
 
     /* JACK stuff */
     char                *client_name;
     unsigned int        num_inputs;
-//  jack_port_t         *input_port[MAX_INPUTS];
-//  const char          *input_names[MAX_INPUTS];
     unsigned int        num_outputs;
-//  jack_port_t         *output_port[MAX_OUTPUTS];
-//  const char          *output_names[MAX_INPUTS];
     jack_client_t       *client;
-    long                client_state;
     long                toggle;
     SCHED_PARAM         jack_client_priority;
 
@@ -220,8 +209,6 @@ struct IWineASIOImpl
 
     Channel             *input;
     Channel             *output;
-
-    float                *tempbuf;
 };
 
 typedef struct IWineASIOImpl              IWineASIOImpl;
@@ -245,15 +232,20 @@ static ULONG WINAPI IWineASIOImpl_Release(LPWINEASIO iface)
     TRACE("(%p) ref was %d\n", This, ref + 1);
 
     if (!ref) {
+        TRACE("Entering state = Exit\n");
         This->state = Exit;
 
         jack_client_close(This->client);
         TRACE("JACK client closed\n");
 
+        TRACE("Setting Win32 thread termination to TRUE\n");
         This->terminate = TRUE;
         sem_post(&This->semaphore1);
 
         WaitForSingleObject(This->stop_event, INFINITE);
+        TRACE("Win32 thread terminated\n");
+        CloseHandle(This->stop_event);
+        This->stop_event = INVALID_HANDLE_VALUE;
 
         sem_destroy(&This->semaphore1);
         sem_destroy(&This->semaphore2);
@@ -393,31 +385,31 @@ static int GetEXEName(DWORD dwProcessID, char* name) {
     unsigned int i;
     char szEXEName[MAX_PATH];
         
-    //Enumerate all processes
+    /* Enumerate all processes */
     if(!EnumProcesses(aProcesses, sizeof(aProcesses), &cbNeeded)) return FALSE;
 
-    // Calculate how many process identifiers were returned.
+     Calculate how many process identifiers were returned.
     cProcesses = cbNeeded / sizeof(DWORD);
 
-    //Loop through all process to find the one that matches
-    //the one we are looking for
+    /* Loop through all process to find the one that matches
+       the one we are looking for */
 
     for (i = 0; i < cProcesses; i++) {
         if (aProcesses [i] == dwProcessID) {
-            // Get a handle to the process
+            /* Get a handle to the process */
             HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION |
                               PROCESS_VM_READ, FALSE, dwProcessID);
         
-            // Get the process name
+            /* Get the process name */
             if (NULL != hProcess) {
                 HMODULE hMod;
                 DWORD cbNeeded;
             
                 if(EnumProcessModules(hProcess, &hMod,sizeof(hMod), &cbNeeded)) {
                     int len;
-                    //Get the name of the exe file
+                    /* Get the name of the exe file */
                     GetModuleBaseNameA(hProcess,hMod,szEXEName,sizeof(szEXEName)/sizeof(char));
-                    len = strlen((char*)szEXEName) - 3; // remove ".exe"
+                    len = strlen((char*)szEXEName) - 3; /* remove ".exe" */
                     lstrcpynA(name,(char*)szEXEName,len); 
                     name[len] = '\0';
                     return TRUE;
@@ -520,7 +512,7 @@ static void set_clientname(IWineASIOImpl *This)
     asprintf(&This->client_name, "%s_%s", DEFAULT_PREFIX, line);
 #else
     char proc_name[256];
-    memset(&proc_name[0],0x0,sizeof(char)*256); //size of char is redundant.. but dunno i like to write it:)
+    memset(&proc_name[0],0x0,sizeof(char)*256); /* size of char is redundant.. but dunno i like to write it:) */
 
     if(!GetEXEName(GetCurrentProcessId(),&proc_name[0])) {
         strcpy(&proc_name[0],"Wine_ASIO");
@@ -561,7 +553,6 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     This->input_latency = This->block_frames;
     This->output_latency = This->block_frames;
     This->miliseconds = (long)((double)(This->block_frames * 1000) / This->sample_rate);
-    This->callbacks = NULL;
     This->sample_position = 0;
     strcpy(This->error_message, "No Error");
     This->num_inputs = 0;
@@ -569,23 +560,15 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     This->active_inputs = 0;
     This->active_outputs = 0;
     This->toggle = 0;
-    This->client_state = Init;
+    This->callbacks = NULL;
     This->time_info_mode = FALSE;
     This->tc_read = FALSE;
-    This->terminate = FALSE;
     This->state = Init;
-    This->jack_client_priority.sched_priority = -1;
-
-    sem_init(&This->semaphore1, 0, 0);
-    sem_init(&This->semaphore2, 0, 0);
-
-    This->start_event = CreateEventW(NULL, FALSE, FALSE, NULL);
-    This->stop_event = CreateEventW(NULL, FALSE, FALSE, NULL);
 
     set_clientname(This);
 
 #ifndef JackWASIO
-    // uses This->client_name
+    /* uses This->client_name */
     read_config(This);
 #else
     ReadJPPrefs();
@@ -603,13 +586,20 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     if (status & JackServerStarted)
         TRACE("(%p) JACK server started\n", This);
 
-    /* get maximum reccomended client priority from JACK */
+    /* Thread initialisation */
+    sem_init(&This->semaphore1, 0, 0);
+    sem_init(&This->semaphore2, 0, 0);
 
-    This->jack_client_priority.sched_priority = jack_client_real_time_priority (This->client);
+    This->terminate = FALSE;
+    This->jack_client_priority.sched_priority = -1;
+    This->start_event = CreateEventW(NULL, FALSE, FALSE, NULL);
+    This->stop_event = CreateEventW(NULL, FALSE, FALSE, NULL);
     This->thread = CreateThread(NULL, 0, win32_callback, (LPVOID)This, 0, &This->thread_id);
     if (This->thread)
     {
+        TRACE("Wait for Win32 thread to start\n", This);
         WaitForSingleObject(This->start_event, INFINITE);
+        TRACE("Win32 thread started\n", This);
         CloseHandle(This->start_event);
         This->start_event = INVALID_HANDLE_VALUE;
     }
@@ -702,8 +692,6 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
         }
     }
 
-    This->tempbuf = HeapAlloc(GetProcessHeap(), 0, This->block_frames * sizeof(float));
-
     return ASIOTrue;
 }
 
@@ -716,7 +704,7 @@ WRAP_THISCALL( void __stdcall, IWineASIOImpl_getDriverName, (LPWINEASIO iface, c
 WRAP_THISCALL( long __stdcall, IWineASIOImpl_getDriverVersion, (LPWINEASIO iface))
 {
     TRACE("(%p)\n", iface);
-    return 80; // 0.8 (patch level 0)
+    return 81; /* 0.8.1.x */
 }
 
 WRAP_THISCALL( void __stdcall, IWineASIOImpl_getErrorMessage, (LPWINEASIO iface, char *string))
@@ -752,7 +740,13 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
             return ASE_NotPresent;
         }
 
-        // get list of port names
+        /* get maximum reccomended client priority from JACK */
+        This->jack_client_priority.sched_priority = jack_client_real_time_priority(This->client);
+
+        /* Win32 thread should now be able to query jack for priority */
+        sem_post(&This->semaphore1);
+
+        /* get list of port names */
         ports = jack_get_ports(This->client, NULL, NULL, JackPortIsPhysical | JackPortIsOutput);
         for(numports = 0; ports && ports[numports]; numports++);
         TRACE("(%p) inputs desired: %d; JACK outputs: %d\n", This, This->num_inputs, numports);
@@ -763,7 +757,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
                 continue;
 
             if (autoconnect) {
-                // Get the desired JACK output (source) name, if there is one, for this ASIO input
+                /* Get the desired JACK output (source) name, if there is one, for this ASIO input */
                 envi = get_targetname(This, ENVVAR_INMAP, i);
                 envi = envi ? envi : j < numports ? ports[j++] : NULL;
                 if (!envi) continue;
@@ -784,7 +778,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
         if (ports)
             free(ports);
 
-        // get list of port names
+        /* get list of port names */
         ports = jack_get_ports(This->client, NULL, NULL, JackPortIsPhysical | JackPortIsInput);
         for(numports = 0; ports && ports[numports]; numports++);
         TRACE("(%p) JACK inputs: %d; outputs desired: %d\n", This, numports, This->num_outputs);
@@ -795,7 +789,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
                 continue;
 
             if (autoconnect) {
-                // Get the desired JACK input (target) name, if there is one, for this ASIO output
+                /* Get the desired JACK input (target) name, if there is one, for this ASIO output */
                 envi = get_targetname(This, ENVVAR_OUTMAP, i);
                 envi = envi ? envi : j < numports ? ports[j++] : NULL;
 
@@ -815,8 +809,8 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
         if (ports)
             free(ports);
 
+        TRACE("Entering state = Run\n");
         This->state = Run;
-        TRACE("started\n");
 
         return ASE_OK;
     }
@@ -962,7 +956,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_setClockSource, (LPWINEASIO if
 WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_getSamplePosition, (LPWINEASIO iface, ASIOSamples *sPos, ASIOTimeStamp *tStamp))
 {
     IWineASIOImpl * This = (IWineASIOImpl*)iface;
-//  TRACE("(%p, %p, %p)\n", iface, sPos, tStamp);
+    TRACE("(%p, %p, %p)\n", iface, sPos, tStamp);
 
     tStamp->lo = This->system_time.lo;
     tStamp->hi = This->system_time.hi;
@@ -984,17 +978,12 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_getSamplePosition, (LPWINEASIO
 WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_getChannelInfo, (LPWINEASIO iface, ASIOChannelInfo *info))
 {
     IWineASIOImpl * This = (IWineASIOImpl*)iface;
-//  int i;
-//  const char * name;
     TRACE("(%p, %p)\n", iface, info);
 
     if (info->channel < 0 || (info->isInput ? info->channel >= This->num_inputs : info->channel >= This->num_outputs))
         return ASE_InvalidParameter;
 
-//  TRACE("info->channel = %ld\n", info->channel);
-//  TRACE("info->isInput = %ld\n", info->isInput);
-
-    info->type = ASIOSTInt32LSB; //  info->type = This->sample_type;
+    info->type = ASIOSTFloat32LSB; /* info->type = This->sample_type; */
     info->channelGroup = 0;
 
     if (info->isInput)
@@ -1015,11 +1004,6 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_getChannelInfo, (LPWINEASIO if
         asprintf(&info->name, "Output %ld", info->channel);
 #endif
     }
-
-//  TRACE("info->isActive = %ld\n", info->isActive);
-//  TRACE("info->channelGroup = %ld\n", info->channelGroup);
-//  TRACE("info->type = %ld\n", info->type);
-//  TRACE("info->name = %s\n", info->name);
 
     return ASE_OK;
 }
@@ -1065,7 +1049,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_createBuffers, (LPWINEASIO ifa
     int i, j;
     TRACE("(%p, %p, %ld, %ld, %p)\n", iface, bufferInfos, numChannels, bufferSize, callbacks);
 
-    // Just to be on the safe side:
+    /* Just to be on the safe side: */
     This->active_inputs = 0;
     for(i = 0; i < This->num_inputs; i++) This->input[i].active = ASIOFalse;
     This->active_outputs = 0;
@@ -1090,8 +1074,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_createBuffers, (LPWINEASIO ifa
                 goto ERROR_PARAM;
             }
 
-// ASIOSTInt32LSB support only
-            This->input[This->active_inputs].buffer = HeapAlloc(GetProcessHeap(), 0, 2 * This->block_frames * sizeof(int));
+            This->input[This->active_inputs].buffer = HeapAlloc(GetProcessHeap(), 0, 2 * This->block_frames * sizeof(float)); /* ASIOSTFloat32LSB support only */
             if (This->input[This->active_inputs].buffer)
             {
                 info->buffers[0] = &This->input[This->active_inputs].buffer[0];
@@ -1124,8 +1107,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_createBuffers, (LPWINEASIO ifa
                 goto ERROR_PARAM;
             }
 
-// ASIOSTInt32LSB support only
-            This->output[This->active_outputs].buffer = HeapAlloc(GetProcessHeap(), 0, 2 * This->block_frames * sizeof(int));
+            This->output[This->active_outputs].buffer = HeapAlloc(GetProcessHeap(), 0, 2 * This->block_frames * sizeof(float)); /* ASIOSTFloat32LSB support only */
             if (This->output[This->active_outputs].buffer)
             {
                 info->buffers[0] = &This->output[This->active_outputs].buffer[0];
@@ -1287,66 +1269,6 @@ static void getNanoSeconds(ASIOTimeStamp* ts)
     ts->lo = (unsigned long)(nanoSeconds - (ts->hi * twoRaisedTo32));
 }
 
-static int jack_process(jack_nframes_t nframes, void * arg)
-{
-    IWineASIOImpl * This = (IWineASIOImpl*)arg;
-    int i;
-    char *in, *out;
-//  jack_transport_state_t ts;
-//  jack_position_t transport;
-
-// ASIOSTInt32LSB support only
-    //int *buffer;
-
-    if (This->state != Run)
-        return 0;
-
-//  ts = jack_transport_query(This->client, &transport);
-//  if (ts == JackTransportRolling)
-//  {
-        if (This->client_state == Init)
-            This->client_state = Run;
-
-        This->sample_position += nframes; //= transport.frame;
-
-        /* get the input data from JACK and copy it to the ASIO buffers */
-        for (i = 0; i < This->active_inputs; i++)
-        {
-            if (This->input[i].active == ASIOTrue) {
-
-                //buffer = &This->input[i].buffer[This->block_frames * This->toggle];
-                in = jack_port_get_buffer(This->input[i].port, nframes);
-
-                jack_ringbuffer_write(This->input[i].ring, in, nframes * sizeof(float));
-            }
-        }
-
-        /* wake up the WIN32 thread so it can do its callback */
-        sem_post(&This->semaphore1);
-
-        /* wait for the WIN32 thread to complete before continuing */
-        sem_wait(&This->semaphore2);
-
-        /* copy the ASIO data to JACK */
-        for (i = 0; i < This->num_outputs; i++)
-        {
-            if (This->output[i].active == ASIOTrue) {
-
-                //buffer = &This->output[i].buffer[This->block_frames * (This->toggle)];
-                out = jack_port_get_buffer(This->output[i].port, nframes);
-
-                jack_ringbuffer_read(This->output[i].ring, out, nframes * sizeof(float));
-            }
-        }
-
-//      This->toggle = This->toggle ? 0 : 1;
-
-//      This->callbacks->bufferSwitch(This->toggle, ASIOTrue);
-//  }
-
-    return 0;
-}
-
 /*
  * The ASIO callback can make WIN32 calls which require a WIN32 thread.
  * Do the callback in this thread and then switch back to the Jack callback thread.
@@ -1354,10 +1276,13 @@ static int jack_process(jack_nframes_t nframes, void * arg)
 static DWORD CALLBACK win32_callback(LPVOID arg)
 {
     IWineASIOImpl * This = (IWineASIOImpl*)arg;
+    TRACE("(%p) Win32 thread starting\n", arg);
 
-    //TRACE("(%p)\n", arg);
-    TRACE ("win32 callback thread started\n");
+    /* let IWineASIO_Init know we are alive */
+    SetEvent(This->start_event);
 
+    /* wait for JACK client to be connected and set sched_priority */
+    sem_wait(&This->semaphore1);
     /* set the priority of the win32 callback thread as suggested by JACK */
 #ifndef JackWASIO
     if (This->jack_client_priority.sched_priority != -1)   /* skip if not running realtime */
@@ -1373,72 +1298,83 @@ static DWORD CALLBACK win32_callback(LPVOID arg)
     setThreadToPriority(pthread_self(),96,TRUE,10000000);
 #endif
 
-    /* let IWineASIO_Init know we are alive */
-    SetEvent(This->start_event);
-    TRACE("Win32 thread running...\n");
-
     while (1)
     {
         /* wait to be woken up by the JACK callback thread */
         sem_wait(&This->semaphore1);
 
-        /* check for termination */
         if (This->terminate)
         {
+            TRACE("Win32 thread terminating\n");
             SetEvent(This->stop_event);
-            TRACE("Win32 thread terminated\n");
             return 0;
         }
-        getNanoSeconds(&This->system_time);
 
-        /* make sure we are in the run state */
-        if (This->state == Run)
+        if (This->state != Run)
+            return 0;
+
+        if (This->time_info_mode)
         {
-            int i;
-
+            getNanoSeconds(&This->system_time);
             This->sample_position += This->block_frames;
 
-            for (i = 0; i < This->active_inputs; i++) {
-                if (This->input[i].active == ASIOTrue) {
-                    int j, *buffer = &This->input[i].buffer[This->block_frames * This->toggle];
-
-                    jack_ringbuffer_read(This->input[i].ring, (char*)This->tempbuf, This->block_frames * sizeof(float));
-
-                    for (j = 0; j < This->block_frames; j++) buffer[j] = (int)(This->tempbuf[j] * (float)(0x7fffffff));
-                }
-            }
-
-            if (This->time_info_mode)
+            __wrapped_IWineASIOImpl_getSamplePosition((LPWINEASIO)This,
+                &This->asio_time.timeInfo.samplePosition, &This->asio_time.timeInfo.systemTime);
+            if (This->tc_read)
             {
-                __wrapped_IWineASIOImpl_getSamplePosition((LPWINEASIO)This,
-                    &This->asio_time.timeInfo.samplePosition, &This->asio_time.timeInfo.systemTime);
-                if (This->tc_read)
-                {
-                    This->asio_time.timeCode.timeCodeSamples.lo = This->asio_time.timeInfo.samplePosition.lo;
-                    This->asio_time.timeCode.timeCodeSamples.hi = 0;
-                }
-                This->callbacks->bufferSwitchTimeInfo(&This->asio_time, This->toggle, ASIOTrue);
-                This->asio_time.timeInfo.flags &= ~(kSampleRateChanged | kClockSourceChanged);
+                This->asio_time.timeCode.timeCodeSamples.lo = This->asio_time.timeInfo.samplePosition.lo;
+                This->asio_time.timeCode.timeCodeSamples.hi = 0;
             }
-            else
-                This->callbacks->bufferSwitch(This->toggle, ASIOTrue);
-
-            /* let the JACK thread know we are done */
-            sem_post(&This->semaphore2);
-
-            for (i = 0; i < This->num_outputs; i++) {
-                if (This->output[i].active == ASIOTrue) {
-                    int j, *buffer = &This->output[i].buffer[This->block_frames * This->toggle];
-                    
-                    for (j = 0; j < This->block_frames; j++) This->tempbuf[j] = ((float)(buffer[j]) / (float)(0x7fffffff));
-                    
-                    jack_ringbuffer_write(This->output[i].ring, (char*)This->tempbuf, This->block_frames * sizeof(float));
-                }
-            }
-
-            This->toggle = This->toggle ? 0 : 1;
+            This->callbacks->bufferSwitchTimeInfo(&This->asio_time, This->toggle, ASIOTrue);
+            This->asio_time.timeInfo.flags &= ~(kSampleRateChanged | kClockSourceChanged);
         }
+        else
+            This->callbacks->bufferSwitch(This->toggle, ASIOTrue);
+
+        /* let the JACK thread know we are done */
+        sem_post(&This->semaphore2);
     }
+
+    return 0;
+}
+
+static int jack_process(jack_nframes_t nframes, void * arg)
+{
+    IWineASIOImpl * This = (IWineASIOImpl*)arg;
+    int i;
+/*
+    jack_position_t transport;
+    jack_transport_state ts = jack_transport_query(This->client, &transport);
+    if (ts == JackTransportRolling)
+        This->sample_position = transport.frame;
+    else
+ */
+        This->sample_position += nframes;
+
+    /* copy the JACK date to ASIO */
+    for (i = 0; i < This->active_inputs; i++)
+        if (This->input[i].active == ASIOTrue)
+            memcpy(
+                &This->input[i].buffer[This->block_frames * This->toggle], /* dest: ASIO */
+                jack_port_get_buffer(This->input[i].port, nframes), /* src: JACK */
+                This->block_frames * sizeof(float));
+
+    /* wake up the WIN32 thread so it can do its callback */
+    sem_post(&This->semaphore1);
+
+    /* wait for the WIN32 thread to complete before continuing */
+    sem_wait(&This->semaphore2);
+
+    /* copy the ASIO data to JACK */
+    for (i = 0; i < This->num_outputs; i++)
+        if (This->output[i].active == ASIOTrue)
+            memcpy(
+                jack_port_get_buffer(This->output[i].port, nframes), /* dest: JACK */
+                &This->output[i].buffer[This->block_frames * This->toggle], /* src: ASIO */
+                This->block_frames * sizeof(float)
+            );
+
+    This->toggle = This->toggle ? 0 : 1;
 
     return 0;
 }

@@ -120,6 +120,10 @@ todo:
 
 4. CHANGE LOG
 -------------
+0.8.1.0:
+05-OCT-2010: Code from Win32 callback thread moved to JACK process callback, except for bufferSwitch() call.
+05-OCT-2010: Switch from int to float for samples.
+
 0.8:
 08-AUG-2010: Forward port JackWASIO changes... needs testing hard. (PLJ)
 
