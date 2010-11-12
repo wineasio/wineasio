@@ -27,18 +27,60 @@
 #include "objbase.h"
 #include "mmsystem.h"
 
+#ifdef HAVE_PTHREAD_H
+#include <pthread.h>
+#include <semaphore.h>
+#endif
+
+#include "wine/library.h"
 #include "wine/debug.h"
 
+#ifdef HAVE_JACK_JACK_H
 #include <jack/jack.h>
+#endif
 
-#include "asio.h"
+#ifdef HAVE_ASIO_SDK_ASIO_H
+#define IEEE754_64FLOAT 1
+#include <common/asio.h>
+#endif
 
 WINE_DEFAULT_DEBUG_CHANNEL(asio);
+
+#if defined(HAVE_JACK_JACK_H) && defined(HAVE_ASIO_SDK_ASIO_H) && defined(HAVE_PTHREAD_H)
+
+#ifndef SONAME_LIBJACK
+#define SONAME_LIBJACK "libjack.so"
+#endif
+
+#define MAKE_FUNCPTR(f) static typeof(f) * fp_##f = NULL;
+
+/* Function pointers for dynamic loading of libjack */
+/* these are prefixed with "fp_", ie. "fp_jack_client_new" */
+MAKE_FUNCPTR(jack_activate);
+MAKE_FUNCPTR(jack_deactivate);
+MAKE_FUNCPTR(jack_connect);
+MAKE_FUNCPTR(jack_client_open);
+MAKE_FUNCPTR(jack_client_close);
+MAKE_FUNCPTR(jack_transport_query);
+MAKE_FUNCPTR(jack_transport_start);
+MAKE_FUNCPTR(jack_set_process_callback);
+MAKE_FUNCPTR(jack_get_sample_rate);
+MAKE_FUNCPTR(jack_port_register);
+MAKE_FUNCPTR(jack_port_get_buffer);
+MAKE_FUNCPTR(jack_get_ports);
+MAKE_FUNCPTR(jack_port_name);
+MAKE_FUNCPTR(jack_get_buffer_size);
+#undef MAKE_FUNCPTR
+
+void *jackhandle = NULL;
 
 /* JACK callback function */
 static int jack_process(jack_nframes_t nframes, void * arg);
 
-// {48D0C522-BFCC-45cc-8B84-17F25F33E6E8}
+/* WIN32 callback function */
+static DWORD CALLBACK win32_callback(LPVOID arg);
+
+/* {48D0C522-BFCC-45cc-8B84-17F25F33E6E8} */
 static GUID const CLSID_WineASIO = {
 0x48d0c522, 0xbfcc, 0x45cc, { 0x8b, 0x84, 0x17, 0xf2, 0x5f, 0x33, 0xe6, 0xe8 } };
 
@@ -47,6 +89,11 @@ static GUID const CLSID_WineASIO = {
 
 #define MAX_INPUTS      2
 #define MAX_OUTPUTS     2
+
+/* ASIO drivers use the thiscall calling convention which only Microsoft compilers
+ * produce.  These macros add an extra layer to fixup the registers properly for
+ * this calling convention.
+ */
 
 #ifdef __i386__  /* thiscall functions are i386-specific */
 
@@ -143,6 +190,7 @@ struct IWineASIOImpl
     long                active_outputs;
     BOOL                time_info_mode;
     BOOL                tc_read;
+    long                state;
 
     /* JACK stuff */
     jack_port_t         *input_port[MAX_INPUTS];
@@ -150,6 +198,15 @@ struct IWineASIOImpl
     jack_client_t       *client;
     long                client_state;
     long                toggle;
+
+    /* callback stuff */
+    HANDLE              thread;
+    HANDLE              start_event;
+    HANDLE              stop_event;
+    DWORD               thread_id;
+    sem_t               semaphore1;
+    sem_t               semaphore2;
+    BOOL                terminate;
 };
 
 typedef struct IWineASIOImpl              IWineASIOImpl;
@@ -169,8 +226,19 @@ static ULONG WINAPI IWineASIOImpl_Release(LPWINEASIO iface)
     TRACE("(%p) ref was %ld\n", This, ref + 1);
 
     if (!ref) {
-        jack_client_close(This->client);
+        fp_jack_client_close(This->client);
         TRACE("JACK client closed\n");
+
+        wine_dlclose(jackhandle, NULL, 0);
+        jackhandle = NULL;
+
+        This->terminate = TRUE;
+        sem_post(&This->semaphore1);
+
+        WaitForSingleObject(This->stop_event, INFINITE);
+
+        sem_destroy(&This->semaphore1);
+        sem_destroy(&This->semaphore2);
 
         HeapFree(GetProcessHeap(),0,This);
         TRACE("(%p) released\n", This);
@@ -205,7 +273,7 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     int i;
     TRACE("(%p, %p)\n", iface, sysHandle);
 
-    This->sample_rate = 48000;
+    This->sample_rate = 48000.0;
     This->block_frames = 1024;
     This->input_latency = This->block_frames;
     This->output_latency = This->block_frames * 2;
@@ -221,6 +289,26 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     This->client_state = Init;
     This->time_info_mode = FALSE;
     This->tc_read = FALSE;
+    This->terminate = FALSE;
+    This->state = Init;
+
+    sem_init(&This->semaphore1, 0, 0);
+    sem_init(&This->semaphore2, 0, 0);
+
+    This->start_event = CreateEventW(NULL, FALSE, FALSE, NULL);
+    This->stop_event = CreateEventW(NULL, FALSE, FALSE, NULL);
+    This->thread = CreateThread(NULL, 0, win32_callback, (LPVOID)This, 0, &This->thread_id);
+    if (This->thread)
+    {
+        WaitForSingleObject(This->start_event, INFINITE);
+        CloseHandle(This->start_event);
+        This->start_event = INVALID_HANDLE_VALUE;
+    }
+    else
+    {
+        WARN("Couldn't create thread\n");
+        return ASIOFalse;
+    }
 
     for (i = 0; i < MAX_INPUTS; i++)
     {
@@ -232,10 +320,10 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
         This->out_map[i] = 0;
     }
 
-    This->client = jack_client_open("Wine_ASIO_Jack_Client", JackNullOption, &status, NULL);
+    This->client = fp_jack_client_open("Wine_ASIO_Jack_Client", JackNullOption, &status, NULL);
     if (This->client == NULL)
     {
-        WARN("failed ot open jack server\n");
+        WARN("failed to open jack server\n");
         return ASIOFalse;
     }
 
@@ -244,9 +332,9 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     if (status & JackServerStarted)
         TRACE("JACK server started\n");
 
-    jack_set_process_callback(This->client, jack_process, This);
+    fp_jack_set_process_callback(This->client, jack_process, This);
 
-    This->sample_rate = jack_get_sample_rate(This->client);
+    This->sample_rate = fp_jack_get_sample_rate(This->client);
     This->miliseconds = (long)((double)(This->block_frames * 1000) / This->sample_rate);
 
     TRACE("sample rate: %f\n", This->sample_rate);
@@ -255,7 +343,7 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     {
         char name[32];
         snprintf(name, sizeof(name), "Input%d", i);
-        This->input_port[i] = jack_port_register(This->client, name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, i);
+        This->input_port[i] = fp_jack_port_register(This->client, name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, i);
         if (This->input_port[i] == 0)
             break;
 
@@ -268,7 +356,7 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     {
         char name[32];
         snprintf(name, sizeof(name), "Output%d", i);
-        This->output_port[i] = jack_port_register(This->client, name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, i);
+        This->output_port[i] = fp_jack_port_register(This->client, name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, i);
         if (This->output_port[i] == 0)
             break;
 
@@ -312,13 +400,13 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
         This->system_time.lo = 0;
         This->system_time.hi = 0;
 
-        if (jack_activate(This->client))
+        if (fp_jack_activate(This->client))
         {
             WARN("couldn't activate client\n");
             return ASE_NotPresent;
         }
 
-        ports = jack_get_ports(This->client, NULL, NULL, JackPortIsPhysical | JackPortIsOutput);
+        ports = fp_jack_get_ports(This->client, NULL, NULL, JackPortIsPhysical | JackPortIsOutput);
 
         if (ports == NULL)
         {
@@ -328,7 +416,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
 
         for (i = 0; i < This->active_inputs; i++)
         {
-            if (jack_connect(This->client, ports[i], jack_port_name(This->input_port[i])))
+            if (fp_jack_connect(This->client, ports[i], fp_jack_port_name(This->input_port[i])))
             {
                 WARN("input %d connect failed\n", i);
                 free(ports);
@@ -338,7 +426,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
 
         free(ports);
 
-        ports = jack_get_ports(This->client, NULL, NULL, JackPortIsPhysical | JackPortIsInput);
+        ports = fp_jack_get_ports(This->client, NULL, NULL, JackPortIsPhysical | JackPortIsInput);
 
         if (ports == NULL)
         {
@@ -348,7 +436,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
 
         for (i = 0; i < This->active_outputs; i++)
         {
-            if (jack_connect(This->client, jack_port_name(This->output_port[i]), ports[i]))
+            if (fp_jack_connect(This->client, fp_jack_port_name(This->output_port[i]), ports[i]))
             {
                 WARN("output %d connect failed\n", i);
                 free(ports);
@@ -358,6 +446,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
 
         free(ports);
 
+        This->state = Run;
         TRACE("started\n");
 
         return ASE_OK;
@@ -368,7 +457,16 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
 
 WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_stop, (LPWINEASIO iface))
 {
-    TRACE("(%p) stub!\n", iface);
+    IWineASIOImpl * This = (IWineASIOImpl*)iface;
+    TRACE("(%p)\n", iface);
+
+    This->state = Exit;
+
+    if (fp_jack_deactivate(This->client))
+    {
+        WARN("couldn't deactivate client\n");
+        return ASE_NotPresent;
+    }
 
     return ASE_OK;
 }
@@ -786,11 +884,56 @@ static const IWineASIOVtbl WineASIO_Vtbl =
     IWineASIOImpl_outputReady,
 };
 
+BOOL init_jack()
+{
+    jackhandle = wine_dlopen(SONAME_LIBJACK, RTLD_NOW, NULL, 0);
+    TRACE("SONAME_LIBJACK == %s\n", SONAME_LIBJACK);
+    TRACE("jackhandle == %p\n", jackhandle);
+    if (!jackhandle)
+    {
+        FIXME("error loading the jack library %s, please install this library to use jack\n", SONAME_LIBJACK);
+        jackhandle = (void*)-1;
+        return FALSE;
+    }
+
+    /* setup function pointers */
+#define LOAD_FUNCPTR(f) if((fp_##f = wine_dlsym(jackhandle, #f, NULL, 0)) == NULL) goto sym_not_found;
+    LOAD_FUNCPTR(jack_activate);
+    LOAD_FUNCPTR(jack_deactivate);
+    LOAD_FUNCPTR(jack_connect);
+    LOAD_FUNCPTR(jack_client_open);
+    LOAD_FUNCPTR(jack_client_close);
+    LOAD_FUNCPTR(jack_transport_query);
+    LOAD_FUNCPTR(jack_transport_start);
+    LOAD_FUNCPTR(jack_set_process_callback);
+    LOAD_FUNCPTR(jack_get_sample_rate);
+    LOAD_FUNCPTR(jack_port_register);
+    LOAD_FUNCPTR(jack_port_get_buffer);
+    LOAD_FUNCPTR(jack_get_ports);
+    LOAD_FUNCPTR(jack_port_name);
+    LOAD_FUNCPTR(jack_get_buffer_size);
+#undef LOAD_FUNCPTR
+
+    return TRUE;
+
+    /* error path for function pointer loading errors */
+sym_not_found:
+    WINE_MESSAGE("Wine cannot find certain functions that it needs inside the jack"
+                 "library.  To enable Wine to use the jack audio server please "
+                 "install libjack\n");
+    wine_dlclose(jackhandle, NULL, 0);
+    jackhandle = NULL;
+    return FALSE;
+}
+
 HRESULT asioCreateInstance(REFIID riid, LPVOID *ppobj)
 {
     IWineASIOImpl * pobj;
     TRACE("(%s, %p)\n", debugstr_guid(riid), ppobj);
 
+    if (!init_jack())
+        return ERROR_NOT_SUPPORTED;
+ 
     pobj = HeapAlloc(GetProcessHeap(), 0, sizeof(*pobj));
     if (pobj == NULL) {
         WARN("out of memory\n");
@@ -817,13 +960,16 @@ static int jack_process(jack_nframes_t nframes, void * arg)
     IWineASIOImpl * This = (IWineASIOImpl*)arg;
     int i, j;
     jack_default_audio_sample_t * in, *out;
-    jack_transport_state_t ts = jack_transport_query(This->client, NULL);
+    jack_transport_state_t ts;
+
+    ts = fp_jack_transport_query(This->client, NULL);
 
     if (ts == JackTransportRolling)
     {
         if (This->client_state == Init)
             This->client_state = Run;
 
+        This->toggle = This->toggle ? 0 : 1;
         This->sample_position += nframes;
 
         /* get the input data from JACK and copy it to the ASIO buffers */
@@ -831,7 +977,7 @@ static int jack_process(jack_nframes_t nframes, void * arg)
         {
             short * buffer = This->input_buffers[i][This->toggle];
 
-            in = jack_port_get_buffer(This->input_port[i], nframes);
+            in = fp_jack_port_get_buffer(This->input_port[i], nframes);
 
             for (j = 0; j < nframes; j++)
                 buffer[j] = in[j] * 32767.0f;
@@ -840,43 +986,95 @@ static int jack_process(jack_nframes_t nframes, void * arg)
         /* call the ASIO user callback to read the input data and fill the output data */
         getNanoSeconds(&This->system_time);
 
-        if (This->time_info_mode)
-        {
-            __wrapped_IWineASIOImpl_getSamplePosition((LPWINEASIO)This, &This->asio_time.timeInfo.samplePosition, &This->asio_time.timeInfo.systemTime);
-            if (This->tc_read)
-            {
-                /* FIXME */
-                This->asio_time.timeCode.timeCodeSamples.lo = This->asio_time.timeInfo.samplePosition.lo;
-                This->asio_time.timeCode.timeCodeSamples.hi = 0;
-            }
-            This->callbacks->bufferSwitchTimeInfo(&This->asio_time, This->toggle, ASIOFalse);
-            This->asio_time.timeInfo.flags &= ~(kSampleRateChanged | kClockSourceChanged);
-        }
-        else
-            This->callbacks->bufferSwitch(This->toggle, ASIOFalse);
+        /* wake up the WIN32 thread so it can do the do it's callback */
+        sem_post(&This->semaphore1);
+
+        /* wait for the WIN32 thread to complete before continuing */
+        sem_wait(&This->semaphore2);
 
         /* copy the ASIO data to JACK */
         for (i = 0; i < This->active_outputs; i++)
         {
             short * buffer = This->output_buffers[i][This->toggle];
 
-            out = jack_port_get_buffer(This->output_port[i], nframes);
+            out = fp_jack_port_get_buffer(This->output_port[i], nframes);
 
             for (j = 0; j < nframes; j++)
                 out[j] = buffer[j] / 32767.0f;
         }
-
-        This->toggle = This->toggle ? 0 : 1;
     }
     else if (ts == JackTransportStopped)
     {
         if (This->client_state == Run)
             This->client_state = Exit;
-
-        /* FIXME why is this needed ? */
-        jack_transport_start(This->client);
+        else
+        {
+            /* FIXME why is this needed ? */
+            fp_jack_transport_start(This->client);
+        }
     }
 
     return 0;
 }
 
+/*
+ * The ASIO callback can make WIN32 calls which require a WIN32 thread.
+ * Do the callback in this thread and then switch back to the Jack callback thread.
+ */
+static DWORD CALLBACK win32_callback(LPVOID arg)
+{
+    IWineASIOImpl * This = (IWineASIOImpl*)arg;
+    TRACE("(%p)\n", arg);
+    
+    /* let IWineASIO_Init know we are alive */
+    SetEvent(This->start_event);
+
+    while (1)
+    {
+        /* wait to be woken up by the JAck callback thread */
+        sem_wait(&This->semaphore1);
+
+        /* check for termination */
+        if (This->terminate)
+        {
+            SetEvent(This->stop_event);
+            TRACE("terminated\n");
+            return 0;
+        }
+
+        /* make sure we are in the run state */
+        if (This->state == Run)
+        {
+            if (This->time_info_mode)
+            {
+                __wrapped_IWineASIOImpl_getSamplePosition((LPWINEASIO)This,
+                    &This->asio_time.timeInfo.samplePosition, &This->asio_time.timeInfo.systemTime);
+                if (This->tc_read)
+                {
+                    /* FIXME */
+                    This->asio_time.timeCode.timeCodeSamples.lo = This->asio_time.timeInfo.samplePosition.lo;
+                    This->asio_time.timeCode.timeCodeSamples.hi = 0;
+                }
+                This->callbacks->bufferSwitchTimeInfo(&This->asio_time, This->toggle, ASIOFalse);
+                This->asio_time.timeInfo.flags &= ~(kSampleRateChanged | kClockSourceChanged);
+            }
+            else
+                This->callbacks->bufferSwitch(This->toggle, ASIOFalse);
+        }
+
+        /* let the Jack thread know we are done */
+        sem_post(&This->semaphore2);
+    }
+
+    return 0;
+}
+
+#else
+
+HRESULT asioCreateInstance(REFIID riid, LPVOID *ppobj)
+{
+    WARN("(%s, %p) ASIO support not compiled into wine\n", debugstr_guid(riid), ppobj);
+    return ERROR_NOT_SUPPORTED;
+}
+
+#endif

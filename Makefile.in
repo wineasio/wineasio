@@ -5,7 +5,8 @@ VPATH     = @srcdir@
 MODULE    = wineasio.dll
 IMPORTLIB = libwineasio.$(IMPLIBEXT)
 IMPORTS   = winmm ole32 user32 advapi32 kernel32 ntdll
-EXTRALIBS = -ldxguid -luuid -ljack
+EXTRAINCL = @ASIOINCL@
+EXTRALIBS = -ldxguid -luuid -ljack -lpthread
 
 C_SRCS = \
 	asio.c \
