@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 Robert Reif
+ * Portions copyright (C) 2007 Peter L Jones
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,6 +19,8 @@
 
 #include "config.h"
 #include "port.h"
+
+#include "settings.h"
 
 //#include <stdarg.h>
 #include <stdio.h>
@@ -260,6 +263,8 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     int i,j;
     char *envi;
     char name[32];
+    char *usercfg = NULL;
+    FILE *cfg;
 
     This.sample_rate = 48000.0;
     This.block_frames = 1024;
@@ -293,10 +298,49 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
 
     TRACE("sample rate: %f\n", This.sample_rate);
 
-    envi = getenv("ASIO_INPUTS");
+    if (asprintf(&usercfg, "%s/%s", getenv("HOME"), USERCFG) >= 0)
+    {
+        cfg = fopen(usercfg, "r");
+        TRACE("Config: %s\n", usercfg);
+        free(usercfg);
+    } else cfg = NULL;
+    if (cfg == NULL)
+    {
+        cfg = fopen(SITECFG, "r");
+        if (cfg) TRACE("Config: %s\n", SITECFG);
+    }
+    if (cfg)
+    {
+        char *line = NULL;
+        size_t len = 0;
+        ssize_t read;
+        while( (read = getline(&line, &len, cfg)) != -1)
+        {
+            while (isspace(line[--read])) line[read]='\0';
+	    if ((strstr(line, ENV_INPUTS) == line
+	        || strstr(line, ENV_OUTPUTS) == line
+	        || strstr(line, MAP_INPORT) == line
+	        || strstr(line, MAP_OUTPORT) == line)
+		&& strchr(line, '='))
+                {
+                    TRACE("env: '%s'\n", line);
+	            putenv(line);
+                }
+	    else
+	    {
+	        free(line);
+            }
+	    line = NULL;
+            len = 0;
+	}
+
+        fclose(cfg);
+    }
+
+    envi = getenv(ENV_INPUTS);
     if (envi != NULL) MAX_INPUTS = atoi(envi);
 
-    envi = getenv("ASIO_OUTPUTS");
+    envi = getenv(ENV_OUTPUTS);
     if (envi != NULL) MAX_OUTPUTS = atoi(envi); 
 
     // initialize input buffers
@@ -377,7 +421,10 @@ WRAP_THISCALL( void __stdcall, IWineASIOImpl_getErrorMessage, (LPWINEASIO iface,
 
 WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
 {
+    char *var_port = NULL;
+    char *val_port = NULL;
     const char ** ports;
+    int numports;
     int i;
 
     if (This.callbacks)
@@ -393,39 +440,50 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
         }
 
         ports = fp_jack_get_ports(This.client, NULL, NULL, JackPortIsPhysical | JackPortIsOutput);
+        for(numports = 0; ports && ports[numports]; numports++);
+
+        for (i = 0; i < MAX_INPUTS; i++)
+        {
+            asprintf(&var_port, "%s%d", MAP_INPORT, i);
+            val_port = getenv(var_port);
+            TRACE("%d: %s %s\n", i, var_port, val_port);
+            free(var_port);
+            var_port = NULL;
+
+            if (This.input[i].active == ASIOTrue && (val_port || i < numports))
+                if (fp_jack_connect(This.client,
+                    val_port ? val_port : ports[i],
+                    fp_jack_port_name(This.input[i].port)))
+                {
+                    WARN("input %d connect failed\n", i);
+                }
+        }
 
         if (ports)
-        {
-
-           for (i = 0; i < MAX_INPUTS && ports[i]; i++)
-           {
-               if (This.input[i].active == ASIOTrue)
-                  if (fp_jack_connect(This.client, ports[i], fp_jack_port_name(This.input[i].port)))
-                  {
-                      WARN("input %d connect failed\n", i);
-                  }
-           }
-
            free(ports);
-        }
 
         ports = fp_jack_get_ports(This.client, NULL, NULL, JackPortIsPhysical | JackPortIsInput);
+        for(numports = 0; ports && ports[numports]; numports++);
 
-        if (ports)
+        for (i = 0; (i < MAX_OUTPUTS); i++)
         {
-
-           for (i = 0; (i < MAX_OUTPUTS) && ports[i]; i++)
-           {
+            asprintf(&var_port, "%s%d", MAP_OUTPORT, i);
+	    val_port = getenv(var_port);
+            TRACE("%d: %s %s\n", i, var_port, val_port);
+            free(var_port);
+            var_port = NULL;
                
-               if (This.output[i].active == ASIOTrue)
-                  if (fp_jack_connect(This.client, fp_jack_port_name(This.output[i].port), ports[i]))
-                  {
+            if (This.output[i].active == ASIOTrue && (val_port || i < numports))
+                if (fp_jack_connect(This.client,
+                    fp_jack_port_name(This.output[i].port),
+                    val_port ? val_port : ports[i]))
+                {
                       WARN("output %d connect failed\n", i);
-                  }
-           }
-        
-           free(ports);
+                }
         }
+        
+        if (ports)
+           free(ports);
 
         This.state = Run;
         TRACE("started\n");
