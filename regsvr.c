@@ -542,10 +542,10 @@ static HRESULT register_driver(void)
 
     if (rc == ERROR_SUCCESS)
     {
-        rc = RegSetValueExA(key, clsid, 0, REG_SZ, wine_clsid, strlen(wine_clsid) + 1);
+        rc = RegSetValueExA(key, clsid, 0, REG_SZ, (CONST BYTE *)wine_clsid, strlen(wine_clsid) + 1);
 
         if (rc == ERROR_SUCCESS)
-            rc = RegSetValueExA(key, desc, 0, REG_SZ, wine_desc, strlen(wine_desc) + 1);
+            rc = RegSetValueExA(key, desc, 0, REG_SZ, (CONST BYTE *)wine_desc, strlen(wine_desc) + 1);
 
         RegCloseKey(key);
     }

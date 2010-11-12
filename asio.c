@@ -208,14 +208,14 @@ typedef struct IWineASIOImpl              IWineASIOImpl;
 static ULONG WINAPI IWineASIOImpl_AddRef(LPWINEASIO iface)
 {
     ULONG ref = InterlockedIncrement(&(This.ref));
-    TRACE("(%p) ref was %ld\n", This, ref - 1);
+    TRACE("(%p) ref was %x\n", &This, ref - 1);
     return ref;
 }
 
 static ULONG WINAPI IWineASIOImpl_Release(LPWINEASIO iface)
 {
     ULONG ref = InterlockedDecrement(&(This.ref));
-    TRACE("(%p) ref was %ld\n", &This, ref + 1);
+    TRACE("(%p) ref was %x\n", &This, ref + 1);
 
     if (!ref) {
         fp_jack_client_close(This.client);
@@ -259,6 +259,7 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     jack_status_t status;
     int i,j;
     char *envi;
+    char name[32];
 
     This.sample_rate = 48000.0;
     This.block_frames = 1024;
@@ -346,15 +347,13 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
 
     for (i = 0; i < MAX_INPUTS; i++)
     {
-        char name[32];
-        snprintf(name, sizeof(name), "Input%d", i);
+        sprintf(name, "Input%d", i);
         This.input[i].port = fp_jack_port_register(This.client, name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, i);
     }
 
     for (i = 0; i < MAX_OUTPUTS; i++)
     {
-        char name[32];
-        snprintf(name, sizeof(name), "Output%d", i);
+        sprintf(name, "Output%d", i);
         This.output[i].port = fp_jack_port_register(This.client, name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, i);
     }
 
@@ -398,9 +397,9 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
         if (ports)
         {
 
-           for (i = 0; i < MAX_INPUTS; i++)
+           for (i = 0; i < MAX_INPUTS && ports[i]; i++)
            {
-               if ((This.input[i].active == ASIOTrue) && ports[i])
+               if (This.input[i].active == ASIOTrue)
                   if (fp_jack_connect(This.client, ports[i], fp_jack_port_name(This.input[i].port)))
                   {
                       WARN("input %d connect failed\n", i);
@@ -415,9 +414,10 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
         if (ports)
         {
 
-           for (i = 0; i < MAX_OUTPUTS; i++)
+           for (i = 0; (i < MAX_OUTPUTS) && ports[i]; i++)
            {
-               if ((This.output[i].active == ASIOTrue) && ports[i])
+               
+               if (This.output[i].active == ASIOTrue)
                   if (fp_jack_connect(This.client, fp_jack_port_name(This.output[i].port), ports[i]))
                   {
                       WARN("output %d connect failed\n", i);
@@ -572,7 +572,6 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_getSamplePosition, (LPWINEASIO
 
 WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_getChannelInfo, (LPWINEASIO iface, ASIOChannelInfo *info))
 {
-    int i;
     char name[32];
 
     if (info->channel < 0 || (info->isInput ? info->channel >= MAX_INPUTS : info->channel >= MAX_OUTPUTS))
@@ -585,12 +584,12 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_getChannelInfo, (LPWINEASIO if
     if (info->isInput)
     {
         info->isActive = This.input[info->channel].active;
-        snprintf(name, sizeof(name), "Input %ld", info->channel);
+        sprintf(name, "Input %ld", info->channel);
     }
     else
     {
-        info->isActive = This.input[info->channel].active;
-        snprintf(name, sizeof(name), "Output %ld", info->channel);
+        info->isActive = This.output[info->channel].active;
+        sprintf(name, "Output %ld", info->channel);
     }
 
     strcpy(info->name, name);
@@ -687,11 +686,6 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_createBuffers, (LPWINEASIO ifa
     }
 
     return ASE_OK;
-
-ERROR_MEM:
-    __wrapped_IWineASIOImpl_disposeBuffers(iface);
-    WARN("no memory\n");
-    return ASE_NoMemory;
 
 ERROR_PARAM:
     __wrapped_IWineASIOImpl_disposeBuffers(iface);
@@ -828,7 +822,7 @@ static int jack_process(jack_nframes_t nframes, void * arg)
 {
     int i, j;
     jack_default_audio_sample_t *in, *out;
-    jack_transport_state_t ts;
+//    jack_transport_state_t ts;
     int *buffer;
 
  //   ts = fp_jack_transport_query(This.client, NULL);
@@ -910,7 +904,7 @@ static DWORD CALLBACK win32_callback(LPVOID arg)
             TRACE("terminated\n");
             return 0;
         }
-    //    getNanoSeconds(&This.system_time);
+        getNanoSeconds(&This.system_time);
 
         /* make sure we are in the run state */
 

@@ -33,3 +33,8 @@ modified by: Ralf Beck (musical_snake@gmx.de)
 
 todo: 
 - make timecode sync to jack transport
+
+
+changelog:
+0.3:
+30-APR-2007: corrected connection of in/outputs
