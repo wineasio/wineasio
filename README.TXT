@@ -105,6 +105,9 @@ todo:
 
 4. CHANGE LOG
 -------------
+0.7.1:
+02-DEC-2007: Build against installed libjack.so rather than dlloading (RB)
+
 0.7:
 01-DEC-2007: In a fit of insanity, I merged JackLab and Robert Reif code bases. (PLJ)
 

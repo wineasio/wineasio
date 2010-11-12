@@ -48,33 +48,6 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(asio);
 
-#ifndef SONAME_LIBJACK
-#define SONAME_LIBJACK "libjack.so"
-#endif
-
-#define MAKE_FUNCPTR(f) static typeof(f) * fp_##f = NULL;
-
-/* Function pointers for dynamic loading of libjack */
-/* these are prefixed with "fp_", ie. "fp_jack_client_new" */
-MAKE_FUNCPTR(jack_activate);
-MAKE_FUNCPTR(jack_deactivate);
-MAKE_FUNCPTR(jack_connect);
-MAKE_FUNCPTR(jack_client_open);
-MAKE_FUNCPTR(jack_client_close);
-MAKE_FUNCPTR(jack_transport_query);
-MAKE_FUNCPTR(jack_transport_start);
-MAKE_FUNCPTR(jack_set_process_callback);
-MAKE_FUNCPTR(jack_get_sample_rate);
-MAKE_FUNCPTR(jack_port_register);
-MAKE_FUNCPTR(jack_port_get_buffer);
-MAKE_FUNCPTR(jack_get_ports);
-MAKE_FUNCPTR(jack_port_name);
-MAKE_FUNCPTR(jack_get_buffer_size);
-MAKE_FUNCPTR(jack_get_client_name);
-#undef MAKE_FUNCPTR
-
-void *jackhandle = NULL;
-
 /* JACK callback function */
 static int jack_process(jack_nframes_t nframes, void * arg);
 
@@ -242,11 +215,8 @@ static ULONG WINAPI IWineASIOImpl_Release(LPWINEASIO iface)
     TRACE("(%p) ref was %d\n", This, ref + 1);
 
     if (!ref) {
-        fp_jack_client_close(This->client);
+        jack_client_close(This->client);
         TRACE("JACK client closed\n");
-
-        wine_dlclose(jackhandle, NULL, 0);
-        jackhandle = NULL;
 
         This->terminate = TRUE;
         sem_post(&This->semaphore1);
@@ -456,14 +426,14 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
         This->client_name = strdup(envi);
     }
 
-    This->client = fp_jack_client_open(This->client_name, JackNullOption, &status, NULL);
+    This->client = jack_client_open(This->client_name, JackNullOption, &status, NULL);
     if (This->client == NULL)
     {
         WARN("(%p) failed to open jack server\n", This);
         return ASIOFalse;
     }
 
-    TRACE("JACK client opened, client name: '%s'\n", fp_jack_get_client_name(This->client));
+    TRACE("JACK client opened, client name: '%s'\n", jack_get_client_name(This->client));
 
     if (status & JackServerStarted)
         TRACE("(%p) JACK server started\n", This);
@@ -474,10 +444,10 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
 //      TRACE("unique name `%s' assigned\n", This->clientname);
 //  }
 
-    fp_jack_set_process_callback(This->client, jack_process, This);
+    jack_set_process_callback(This->client, jack_process, This);
 
-    This->sample_rate = fp_jack_get_sample_rate(This->client);
-    This->block_frames = fp_jack_get_buffer_size(This->client);
+    This->sample_rate = jack_get_sample_rate(This->client);
+    This->block_frames = jack_get_buffer_size(This->client);
 
     This->miliseconds = (long)((double)(This->block_frames * 1000) / This->sample_rate);
     This->input_latency = This->block_frames;
@@ -575,14 +545,14 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
         This->system_time.lo = 0;
         This->system_time.hi = 0;
 
-        if (fp_jack_activate(This->client))
+        if (jack_activate(This->client))
         {
             WARN("couldn't activate client\n");
             return ASE_NotPresent;
         }
 
         // get list of port names
-        ports = fp_jack_get_ports(This->client, NULL, NULL, JackPortIsPhysical | JackPortIsOutput);
+        ports = jack_get_ports(This->client, NULL, NULL, JackPortIsPhysical | JackPortIsOutput);
         for(numports = 0; ports && ports[numports]; numports++);
         TRACE("(%p) inputs desired: %d; JACK outputs: %d\n", This, This->num_inputs, numports);
 
@@ -591,7 +561,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
             if (This->input[i].active != ASIOTrue)
                 continue;
 
-            This->input[i].port = fp_jack_port_register(This->client,
+            This->input[i].port = jack_port_register(This->client,
                 This->input[i].port_name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, i);
             if (This->input[i].port)
                 TRACE("(%p) Registered input port %i: '%s' (%p)\n", This, i, This->input[i].port_name, This->input[i].port);
@@ -605,11 +575,11 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
 
             TRACE("(%p) %d: Connect JACK output '%s' to my input '%s'\n", This, i
                 ,(envi ? envi : ports[j])
-                ,fp_jack_port_name(This->input[i].port)
+                ,jack_port_name(This->input[i].port)
                 );
-            if (fp_jack_connect(This->client
+            if (jack_connect(This->client
                 ,(envi ? envi : ports[j++])
-                ,fp_jack_port_name(This->input[i].port)
+                ,jack_port_name(This->input[i].port)
                 ))
             {
                 MESSAGE("(%p) Connect failed\n", This);
@@ -619,7 +589,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
             free(ports);
 
         // get list of port names
-        ports = fp_jack_get_ports(This->client, NULL, NULL, JackPortIsPhysical | JackPortIsInput);
+        ports = jack_get_ports(This->client, NULL, NULL, JackPortIsPhysical | JackPortIsInput);
         for(numports = 0; ports && ports[numports]; numports++);
         TRACE("(%p) JACK inputs: %d; outputs desired: %d\n", This, numports, This->num_outputs);
 
@@ -628,7 +598,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
             if (This->output[i].active != ASIOTrue)
                 continue;
 
-            This->output[i].port = fp_jack_port_register(This->client, 
+            This->output[i].port = jack_port_register(This->client, 
                 This->output[i].port_name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, i);
             if (This->output[i].port)
                 TRACE("(%p) Registered output port %i: '%s' (%p)\n", This, i, This->output[i].port_name, This->output[i].port);
@@ -641,11 +611,11 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
             envi = get_targetname(This, ENVVAR_OUTMAP, i);
 
             TRACE("(%p) %d: Connect my output '%s' to JACK input '%s'\n", This, i
-                ,fp_jack_port_name(This->output[i].port)
+                ,jack_port_name(This->output[i].port)
                 ,(envi ? envi : ports[j])
                 );
-            if (fp_jack_connect(This->client
-                ,fp_jack_port_name(This->output[i].port)
+            if (jack_connect(This->client
+                ,jack_port_name(This->output[i].port)
                 ,(envi ? envi : ports[j++])
                 ))
             {
@@ -671,7 +641,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_stop, (LPWINEASIO iface))
 
     This->state = Exit;
 
-    if (fp_jack_deactivate(This->client))
+    if (jack_deactivate(This->client))
     {
         WARN("couldn't deactivate client\n");
         return ASE_NotPresent;
@@ -1091,58 +1061,10 @@ static const IWineASIOVtbl WineASIO_Vtbl =
     IWineASIOImpl_outputReady,
 };
 
-BOOL init_jack()
-{
-    jackhandle = wine_dlopen(SONAME_LIBJACK, RTLD_NOW, NULL, 0);
-    TRACE("SONAME_LIBJACK == %s\n", SONAME_LIBJACK);
-    TRACE("jackhandle == %p\n", jackhandle);
-    if (!jackhandle)
-    {
-        MESSAGE("Error loading the jack library %s, please install this library to use jack\n", SONAME_LIBJACK);
-        jackhandle = (void*)-1;
-        return FALSE;
-    }
-
-    /* setup function pointers */
-#define LOAD_FUNCPTR(f) if((fp_##f = wine_dlsym(jackhandle, #f, NULL, 0)) == NULL) goto sym_not_found;
-    LOAD_FUNCPTR(jack_activate);
-    LOAD_FUNCPTR(jack_deactivate);
-    LOAD_FUNCPTR(jack_connect);
-    LOAD_FUNCPTR(jack_client_open);
-    LOAD_FUNCPTR(jack_client_close);
-    LOAD_FUNCPTR(jack_transport_query);
-    LOAD_FUNCPTR(jack_transport_start);
-    LOAD_FUNCPTR(jack_set_process_callback);
-    LOAD_FUNCPTR(jack_get_sample_rate);
-    LOAD_FUNCPTR(jack_port_register);
-    LOAD_FUNCPTR(jack_port_get_buffer);
-    LOAD_FUNCPTR(jack_get_ports);
-    LOAD_FUNCPTR(jack_port_name);
-    LOAD_FUNCPTR(jack_get_buffer_size);
-    LOAD_FUNCPTR(jack_get_client_name);
-#undef LOAD_FUNCPTR
-
-    return TRUE;
-
-    /* error path for function pointer loading errors */
-sym_not_found:
-    WINE_MESSAGE("Wine cannot find certain functions that it needs inside the jack"
-                 "library.  To enable Wine to use the jack audio server please "
-                 "install libjack\n");
-    wine_dlclose(jackhandle, NULL, 0);
-    jackhandle = NULL;
-    return FALSE;
-}
-
 HRESULT asioCreateInstance(REFIID riid, LPVOID *ppobj)
 {
     IWineASIOImpl * pobj;
     TRACE("(%s, %p)\n", debugstr_guid(riid), ppobj);
-
-    if (!init_jack()) {
-        WARN("init_jack failed!\n");
-        return ERROR_NOT_SUPPORTED;
-    }
 
     pobj = HeapAlloc(GetProcessHeap(), 0, sizeof(*pobj));
     if (pobj == NULL) {
@@ -1177,7 +1099,7 @@ static int jack_process(jack_nframes_t nframes, void * arg)
     if (This->state != Run)
         return 0;
 
-//  ts = fp_jack_transport_query(This->client, NULL);
+//  ts = jack_transport_query(This->client, NULL);
 //  if (ts == JackTransportRolling)
 //  {
         if (This->client_state == Init)
@@ -1192,7 +1114,7 @@ static int jack_process(jack_nframes_t nframes, void * arg)
             if (This->input[i].active == ASIOTrue) {
 
                 buffer = &This->input[i].buffer[This->block_frames * This->toggle];
-                in = fp_jack_port_get_buffer(This->input[i].port, nframes);
+                in = jack_port_get_buffer(This->input[i].port, nframes);
 
                 for (j = 0; j < nframes; j++)
                     buffer[j] = (int)(in[j] * (float)(0x7fffffff));
@@ -1214,7 +1136,7 @@ static int jack_process(jack_nframes_t nframes, void * arg)
             if (This->output[i].active == ASIOTrue) {
 
                 buffer = &This->output[i].buffer[This->block_frames * (This->toggle)];
-                out = fp_jack_port_get_buffer(This->output[i].port, nframes);
+                out = jack_port_get_buffer(This->output[i].port, nframes);
 
                 for (j = 0; j < nframes; j++) 
                     out[j] = ((float)(buffer[j]) / (float)(0x7fffffff));

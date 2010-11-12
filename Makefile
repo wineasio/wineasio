@@ -10,13 +10,13 @@ EXES                  =
 
 ### Common settings
 
-CEXTRA                = -g -O2 -D__WINESRC__ -D_REENTRANT -fPIC -Wall -pipe -fno-strict-aliasing -Wdeclaration-after-statement -Wwrite-strings -Wpointer-arith
-CXXEXTRA              = -D__WINESRC__ -D_REENTRANT -fPIC -Wall -pipe -fno-strict-aliasing -Wdeclaration-after-statement -Wwrite-strings -Wpointer-arith
+CEXTRA                = -m32 -g -O2 -D__WINESRC__ -D_REENTRANT -fPIC -Wall -pipe -fno-strict-aliasing -Wdeclaration-after-statement -Wwrite-strings -Wpointer-arith
+CXXEXTRA              = -m32 -D__WINESRC__ -D_REENTRANT -fPIC -Wall -pipe -fno-strict-aliasing -Wdeclaration-after-statement -Wwrite-strings -Wpointer-arith
 RCEXTRA               =
 INCLUDE_PATH          = -I. -I/usr/include -I$(PREFIX)/include -I$(PREFIX)/include/wine -I$(PREFIX)/include/wine/windows
 DLL_PATH              =
 LIBRARY_PATH          =
-LIBRARIES             =
+LIBRARIES             = -ljack
 
 
 ### wineasio.dll sources and settings
