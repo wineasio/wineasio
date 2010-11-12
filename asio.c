@@ -267,7 +267,7 @@ static void set_clientname(IWineASIOImpl *This)
     fclose(cmd);
 
     ptr = line;
-    while(strchr(ptr, '/')) ++ptr;
+    while(strchr(ptr, '/') || strchr(ptr, '\\')) ++ptr;
     line = ptr;
     ptr = strcasestr(line, ".exe");
     if (ptr) {
