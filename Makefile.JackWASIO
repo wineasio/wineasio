@@ -15,8 +15,8 @@ EXES                  =
 
 ### Common settings
 
-CEXTRA                = -m32 -g -O2 -D__WINESRC__ -D_REENTRANT -fPIC -Wall -pipe -fno-strict-aliasing -Wdeclaration-after-statement -Wwrite-strings -Wpointer-arith
-CXXEXTRA              = -m32 -D__WINESRC__ -D_REENTRANT -fPIC -Wall -pipe -fno-strict-aliasing -Wdeclaration-after-statement -Wwrite-strings -Wpointer-arith
+CEXTRA                = -m32 -g -O2 -DJackWASIO -D__WINESRC__ -D_REENTRANT -fPIC -Wall -pipe -fno-strict-aliasing -Wdeclaration-after-statement -Wwrite-strings -Wpointer-arith
+CXXEXTRA              = -m32 -DJackWASIO -D__WINESRC__ -D_REENTRANT -fPIC -Wall -pipe -fno-strict-aliasing -Wdeclaration-after-statement -Wwrite-strings -Wpointer-arith
 RCEXTRA               =
 INCLUDE_PATH          = -I. -I/usr/include -I$(PREFIX)/include -I$(PREFIX)/include/wine -I$(PREFIX)/include/wine/windows
 DLL_PATH              =
@@ -34,7 +34,8 @@ wineasio_dll_CXX_SRCS =
 wineasio_dll_RC_SRCS  =
 wineasio_dll_LDFLAGS  = -m32 -shared \
 			$(wineasio_dll_MODULE:%=%.spec) \
-			-mnocygwin
+			-mnocygwin \
+			 -framework CoreAudio
 wineasio_dll_DLL_PATH =
 wineasio_dll_DLLS     = odbc32 \
 			ole32 \

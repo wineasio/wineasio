@@ -17,6 +17,10 @@ PREFIX = /usr
 or
 PREFIX = /usr/local
 
+wineasio is currently 32bit only and must live in the lib32 library on 
+64bit systems.  The Makefile tries to autodetect this.  But if it fails,
+set LIBDIR.
+
 Copy the file asio.h from Steinberg's asio-sdk to the wineasio directory
 
 then execute: make
@@ -53,6 +57,7 @@ ASIO_INPORTNAME<n>
 ASIO_OUTPORTNAME<n>
 ASIO_INPORT<n>
 ASIO_OUTPORT<n>
+ASIO_AUTOCONNECT
 <clientname>
 
 The last entry allows you to change the client name from the default, which is
@@ -86,6 +91,13 @@ example,
     ASIO_OUTPORT0=idjc-mx:aux_lt
     ASIO_OUTPORT1=idjc-mx:aux_rt
 
+AUTOCONNECT
+-----------
+This enables you to control whether a client automatically connects to JACK or
+whether you will do the wiring up yourself.  The default is to connect.  To turn
+it off, use, for example,
+    ASIO_reaper_AUTOCONNECT=false
+(where "false" is anything other than "true" (case independent)).
 
 3. CREDITS
 ----------
@@ -96,23 +108,28 @@ original code: Robert Reif posted to the wine mailinglist
 modified by: Ralf Beck (musical_snake@gmx.de)
 
 port mapping, config file, dynamic client naming, bringing back in line with
-Robert Reif's code
+Robert Reif's code, merging JackWASIO:
 	Peter L Jones (pljones@users.sf.net)
 
 fix for windows-style path handling: William Steidtmann
 
 todo: 
 - make timecode sync to jack transport
+- are we leaving memory allocated?
 
 
 4. CHANGE LOG
 -------------
+0.8:
+08-AUG-2010: Forward port JackWASIO changes... needs testing hard. (PLJ)
+
+0.7.6:
+27-DEC-2009: Fixes for compilation on 64bit platform. (PLJ)
+
 0.7.5:
 29-Oct-2009: Added fork with call to qjackctl from ASIOControlPanel(). (JH)
 29-Oct-2009: Changed the SCHED_FIFO priority of the win32 callback thread. (JH)
 28-Oct-2009: Fixed wrongly reported output latency. (JH)
-
-
 
 0.7.4:
 08-APR-2008: Updates to the README.TXT (PLJ)
@@ -131,6 +148,16 @@ todo:
 
 0.0.3:
 17-NOV-2007: Unique port name code (RR)
+
+JackWASIO (branched from 0.5-ish):
+02-OCT-2007: Johnny Petrantoni - added more Linux compatibility code, it should compile now on a linux box (still need edit makefile)
+30-SEP-2007: Johnny Petrantoni - added JackPilot preferences for virtual-ports and auto connect, added some macros for linux compilation, 
+								 removed prepath from libjack.
+29-SEP-2007: Johnny Petrantoni - added mutex and condition code to synch IT IS WORKING NOW!!! tested down to 256 buffersize using reaper.
+28-SEP-2007: Johnny Petrantoni - Added pThreadUtilities.h code... but the cracks are still there..
+28-SEP-2007: Johnny Petrantoni - Minor fixes, added TODO and this changes log.
+28-SEP-2007: Johnny Petrantoni - Added Stephane GetEXEName() and code cleanup.
+28-SEP-2007: Johnny Petrantoni - First Import.
 
 0.5:
 03-SEP-2007: port mapping and config file (PLJ)

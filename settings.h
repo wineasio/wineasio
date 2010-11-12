@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2007 Peter L Jones
- * Ugh, can you really copyright something this trivial?
+ * Copyright (C) 2010 Peter L Jones
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,10 +22,12 @@ static const char* ENVVAR_INPORTNAMEPREFIX = "INPORTNAME";
 static const char* ENVVAR_OUTPORTNAMEPREFIX = "OUTPORTNAME";
 static const char* ENVVAR_INMAP = "_INPORT";
 static const char* ENVVAR_OUTMAP = "_OUTPORT";
+static const char* ENVVAR_AUTOCONNECT = "_AUTOCONNECT";
 static const char* DEFAULT_PREFIX = "ASIO";
 static const char* DEFAULT_INPORT = "input_";
 static const char* DEFAULT_OUTPORT = "output_";
 static const int   DEFAULT_NUMINPUTS = 2;
 static const int   DEFAULT_NUMOUTPUTS = 2;
+static const int   DEFAULT_AUTOCONNECT = -1;
 static const char* USERCFG = ".wineasiocfg";
 static const char* SITECFG = "/etc/default/wineasiocfg";
