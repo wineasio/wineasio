@@ -42,17 +42,25 @@ that would otherwise be used.
 Rather than setting these in your environment, you can set up a file called
 .wineasiocfg in your home directory (or a site-wide /etc/default/wineasiocfg).
 
+Each WINE asio client will get its name from the command executed, tagged
+as "wineasio[file.exe]".  You can override this using environment variables
+or the config file by setting
+wineasio[file.exe]="My Client Name"
+
 ----------------
 
 original code: Robert Reif posted to the wine mailinglist
 modified by: Ralf Beck (musical_snake@gmx.de)
-port mapping and config file: Peter L Jones (pljones@users.sf.net)
+port mapping, config file, dynamic client naming:
+	Peter L Jones (pljones@users.sf.net)
 
 todo: 
 - make timecode sync to jack transport
 
 
 changelog:
+0.6:
+10-NOV-2007: add dynamic client naming
 0.5:
 03-SEP-2007: port mapping and config file
 0.3:

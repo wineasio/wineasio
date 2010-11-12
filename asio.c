@@ -69,6 +69,7 @@ MAKE_FUNCPTR(jack_port_get_buffer);
 MAKE_FUNCPTR(jack_get_ports);
 MAKE_FUNCPTR(jack_port_name);
 MAKE_FUNCPTR(jack_get_buffer_size);
+MAKE_FUNCPTR(jack_get_client_name);
 #undef MAKE_FUNCPTR
 
 void *jackhandle = NULL;
@@ -264,6 +265,7 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     char *envi;
     char name[32];
     char *usercfg = NULL;
+    char *client_name = NULL;
     FILE *cfg;
 
     This.sample_rate = 48000.0;
@@ -281,27 +283,10 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     This.terminate = FALSE;
     This.state = Init;
 
-    This.client = fp_jack_client_open("Wine_ASIO_Jack_Client", JackNullOption, &status, NULL);
-    if (This.client == NULL)
-    {
-        WARN("failed to open jack server\n");
-        return ASIOFalse;
-    }
-
-    TRACE("JACK client opened\n");
-
-    This.sample_rate = fp_jack_get_sample_rate(This.client);
-    This.block_frames = fp_jack_get_buffer_size(This.client);
-    This.input_latency = This.block_frames;
-    This.output_latency = This.block_frames * 2;
-    This.miliseconds = (long)((double)(This.block_frames * 1000) / This.sample_rate);
-
-    TRACE("sample rate: %f\n", This.sample_rate);
-
     if (asprintf(&usercfg, "%s/%s", getenv("HOME"), USERCFG) >= 0)
     {
         cfg = fopen(usercfg, "r");
-        TRACE("Config: %s\n", usercfg);
+        if (cfg) TRACE("Config: %s\n", usercfg);
         free(usercfg);
     } else cfg = NULL;
     if (cfg == NULL)
@@ -309,18 +294,42 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
         cfg = fopen(SITECFG, "r");
         if (cfg) TRACE("Config: %s\n", SITECFG);
     }
+    if (1)
+    {
+        FILE *cmd;
+        char *cmdline = NULL;
+        char *ptr, *line = NULL;
+        size_t len = 0;
+
+        asprintf(&cmdline, "/proc/%d/cmdline", getpid());
+        cmd = fopen(cmdline, "r");
+        free(cmdline);
+
+        getline(&line, &len, cmd);
+        fclose(cmd);
+
+        ptr = line;
+        while(strchr(ptr, '/')) ++ptr;
+
+        asprintf(&client_name, "wineasio[%s]", ptr);
+        TRACE("client_name: '%s'\n", client_name);
+    }
     if (cfg)
     {
         char *line = NULL;
         size_t len = 0;
         ssize_t read;
+
+        line = NULL;
+        len = 0;
         while( (read = getline(&line, &len, cfg)) != -1)
         {
             while (isspace(line[--read])) line[read]='\0';
 	    if ((strstr(line, ENV_INPUTS) == line
 	        || strstr(line, ENV_OUTPUTS) == line
 	        || strstr(line, MAP_INPORT) == line
-	        || strstr(line, MAP_OUTPORT) == line)
+	        || strstr(line, MAP_OUTPORT) == line
+                || strstr(line, client_name) == line)
 		&& strchr(line, '='))
                 {
                     TRACE("env: '%s'\n", line);
@@ -336,6 +345,26 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
 
         fclose(cfg);
     }
+
+    envi = getenv(client_name);
+    if (envi != NULL) client_name = envi;
+
+    This.client = fp_jack_client_open(client_name, JackNullOption, &status, NULL);
+    if (This.client == NULL)
+    {
+        WARN("failed to open jack server\n");
+        return ASIOFalse;
+    }
+
+    TRACE("JACK client opened, client name: '%s'\n", fp_jack_get_client_name(This.client));
+
+    This.sample_rate = fp_jack_get_sample_rate(This.client);
+    This.block_frames = fp_jack_get_buffer_size(This.client);
+    This.input_latency = This.block_frames;
+    This.output_latency = This.block_frames * 2;
+    This.miliseconds = (long)((double)(This.block_frames * 1000) / This.sample_rate);
+
+    TRACE("sample rate: %f\n", This.sample_rate);
 
     envi = getenv(ENV_INPUTS);
     if (envi != NULL) MAX_INPUTS = atoi(envi);
@@ -842,6 +871,7 @@ BOOL init_jack()
     LOAD_FUNCPTR(jack_get_ports);
     LOAD_FUNCPTR(jack_port_name);
     LOAD_FUNCPTR(jack_get_buffer_size);
+    LOAD_FUNCPTR(jack_get_client_name);
 #undef LOAD_FUNCPTR
 
     return TRUE;
