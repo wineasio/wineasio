@@ -1,0 +1,22 @@
+diff -p -u -r1.553 configure.ac
+--- configure.ac	29 Aug 2006 12:20:36 -0000	1.553
++++ configure.ac	1 Sep 2006 02:31:19 -0000
+@@ -1714,6 +1714,7 @@ dlls/vnetbios.vxd/Makefile
+ dlls/vtdapi.vxd/Makefile
+ dlls/vwin32.vxd/Makefile
+ dlls/w32skrnl/Makefile
++dlls/wineasio/Makefile
+ dlls/winecrt0/Makefile
+ dlls/wined3d/Makefile
+ dlls/winedos/Makefile
+diff -p -u -r1.320 Makefile.in
+--- dlls/Makefile.in	29 Aug 2006 12:20:36 -0000	1.320
++++ dlls/Makefile.in	1 Sep 2006 02:31:19 -0000
+@@ -174,6 +174,7 @@ BASEDIRS = \
+ 	vtdapi.vxd \
+ 	vwin32.vxd \
+ 	w32skrnl \
++	wineasio \
+ 	winedos \
+ 	winemp3.acm \
+ 	wineps.drv \
