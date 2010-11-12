@@ -107,6 +107,9 @@ todo:
 
 4. CHANGE LOG
 -------------
+0.7.3:
+27-DEC-2007: Make slaving to jack transport work, correct port allocation bug. (RB)
+
 0.7:
 01-DEC-2007: In a fit of insanity, I merged JackLab and Robert Reif code bases. (PLJ)
 

@@ -556,7 +556,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
         for(numports = 0; ports && ports[numports]; numports++);
         TRACE("(%p) inputs desired: %d; JACK outputs: %d\n", This, This->num_inputs, numports);
 
-        for (i = j = 0; i < This->num_inputs && j < numports; i++)
+        for (i = j = 0; i < This->num_inputs; i++)
         {
             if (This->input[i].active != ASIOTrue)
                 continue;
@@ -570,19 +570,22 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
                 return ASE_NotPresent;
             }
 
-            // Get the desired JACK output (source) name, if there is one, for this ASIO input
-            envi = get_targetname(This, ENVVAR_INMAP, i);
+            if (j < numports) {
 
-            TRACE("(%p) %d: Connect JACK output '%s' to my input '%s'\n", This, i
-                ,(envi ? envi : ports[j])
-                ,jack_port_name(This->input[i].port)
-                );
-            if (jack_connect(This->client
-                ,(envi ? envi : ports[j++])
-                ,jack_port_name(This->input[i].port)
-                ))
-            {
-                MESSAGE("(%p) Connect failed\n", This);
+               // Get the desired JACK output (source) name, if there is one, for this ASIO input
+               envi = get_targetname(This, ENVVAR_INMAP, i);
+
+               TRACE("(%p) %d: Connect JACK output '%s' to my input '%s'\n", This, i
+                   ,(envi ? envi : ports[j])
+                   ,jack_port_name(This->input[i].port)
+                   );
+               if (jack_connect(This->client
+                   ,(envi ? envi : ports[j++])
+                   ,jack_port_name(This->input[i].port)
+                  ))
+               {
+                  MESSAGE("(%p) Connect failed\n", This);
+               }
             }
         }
         if (ports)
@@ -593,7 +596,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
         for(numports = 0; ports && ports[numports]; numports++);
         TRACE("(%p) JACK inputs: %d; outputs desired: %d\n", This, numports, This->num_outputs);
 
-        for (i = j = 0; i < This->num_outputs && j < numports; i++)
+        for (i = j = 0; i < This->num_outputs; i++)
         {
             if (This->output[i].active != ASIOTrue)
                 continue;
@@ -607,19 +610,22 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
                 return ASE_NotPresent;
             }
 
-            // Get the desired JACK input (target) name, if there is one, for this ASIO output
-            envi = get_targetname(This, ENVVAR_OUTMAP, i);
+            if (j < numports) {
 
-            TRACE("(%p) %d: Connect my output '%s' to JACK input '%s'\n", This, i
-                ,jack_port_name(This->output[i].port)
-                ,(envi ? envi : ports[j])
-                );
-            if (jack_connect(This->client
-                ,jack_port_name(This->output[i].port)
-                ,(envi ? envi : ports[j++])
-                ))
-            {
-                MESSAGE("(%p) Connect failed\n", This);
+               // Get the desired JACK input (target) name, if there is one, for this ASIO output
+               envi = get_targetname(This, ENVVAR_OUTMAP, i);
+
+               TRACE("(%p) %d: Connect my output '%s' to JACK input '%s'\n", This, i
+                   ,jack_port_name(This->output[i].port)
+                   ,(envi ? envi : ports[j])
+                   );
+               if (jack_connect(This->client
+                   ,jack_port_name(This->output[i].port)
+                   ,(envi ? envi : ports[j++])
+                  ))
+               {
+                  MESSAGE("(%p) Connect failed\n", This);
+               }
             }
         }
         if (ports)
@@ -1092,21 +1098,23 @@ static int jack_process(jack_nframes_t nframes, void * arg)
     IWineASIOImpl * This = (IWineASIOImpl*)arg;
     int i, j;
     jack_default_audio_sample_t *in, *out;
-//  jack_transport_state_t ts;
+    jack_transport_state_t ts;
+    jack_position_t transport;
+
 // ASIOSTInt32LSB support only
     int *buffer;
 
     if (This->state != Run)
         return 0;
 
-//  ts = jack_transport_query(This->client, NULL);
+    ts = jack_transport_query(This->client, &transport);
 //  if (ts == JackTransportRolling)
 //  {
         if (This->client_state == Init)
             This->client_state = Run;
 
         This->toggle = This->toggle ? 0 : 1;
-        This->sample_position += nframes;
+        This->sample_position = transport.frame;
 
         /* get the input data from JACK and copy it to the ASIO buffers */
         for (i = 0; i < This->active_inputs; i++)
