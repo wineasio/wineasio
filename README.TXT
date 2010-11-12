@@ -17,8 +17,7 @@ PREFIX = /usr
 or
 PREFIX = /usr/local
 
-Copy the file asio.h from Steinberg's asio-sdk to
-the wineasio directory
+Copy the file asio.h from Steinberg's asio-sdk to the wineasio directory
 
 then execute: make
 and as root:  make install
@@ -26,27 +25,25 @@ and as root:  make install
 then, again as normal user: regsvr32 wineasio.dll
 
 Notes: 
-The asio.c file uses 32 bit integer buffers, wich is supported by 
-most asio applications.  The asio.c.float uses 32 bit float buffers and
-thus avoids the format conversion necessary for jack.
+The asio.c file uses 32 bit integer buffers, which is supported by most asio
+applications.
 
 
 2. USER INSTRUCTIONS
 --------------------
 
-The driver can be configured in two ways: either using environment variables
-or using a configuration file.
+The driver can be configured in two ways: either using environment variables or
+using a configuration file.
 
-The configuration file can be set per user in ".wineasiocfg".
-As a fallback, a site file can be provided in "/etc/default/wineasiocfg"
-if desired.
+The configuration file can be set per user in ".wineasiocfg".  As a fallback, a
+site-wide file can be provided in "/etc/default/wineasiocfg" if desired.
 
 The format for the configuration file is simply "var=val".
 
 If using the shell, either include the assignment on the command line:
     ASIO_INPUTS=0 ~/bin/reaper.exe
 or ensure the variable has been exported:
-    EXPORT ASIO_INPUTS=0
+    export ASIO_INPUTS=0
     ~/bin/reaper.exe
 
 The available variables are as follows:
@@ -58,31 +55,34 @@ ASIO_INPORT<n>
 ASIO_OUTPORT<n>
 <clientname>
 
-The last entry allows you to change the client name from the default, which
-is constructed from the program name prefixed by "ASIO".  For example,
-    ASIO_reaper.exe=REAPER
+The last entry allows you to change the client name from the default, which is
+constructed from the program name prefixed by "ASIO_".  For example,
+    ASIO_reaper=REAPER
 All of the entries beginning ASIO_ can also have entries specific to a client,
 using the assigned client name.  For example,
+    ASIO_reaper_INPUTS=0
+or (if the client name has been re-assigned as above),
     REAPER_INPUTS=0
 
 INPUTS and OUTPUTS
 ------------------
-These let you limit the number of JACK ports allocated to this client.
+These let you limit the number of JACK ports allocated to this client.  The
+default value for both is 2.
 
 INPORTNAME and OUTPORTNAME
 --------------------------
-These allow you to rename the input and output ports for the client.
-The default names are "input_<n>" and "output_<n>".  For example,
+These allow you to rename the input and output ports for the client.  The
+default names are "input_<n>" and "output_<n>".  For example,
     REAPER_OUTPORTNAME0=left
     REAPER_OUTPORTNAME1=right
 
 INPORT and OUTPORT
 ------------------
-These allow you to connect the client to JACK ports of your choice.
-The default is to connect JACK's "hardware" inputs to your client's inputs
-and your client's outputs to JACK's "hardware" outputs.  You might be
-running some other application, e.g. an icecast server, and want to
-send output to that.  For example,
+These allow you to connect the client to JACK ports of your choice.  The
+default is to connect JACK's "hardware" inputs to your client's inputs and your
+client's outputs to JACK's "hardware" outputs.  You might be running some other
+application, e.g. an icecast server, and want to send output to that.  For
+example,
     ASIO_OUTPORT0=idjc-mx:aux_lt
     ASIO_OUTPORT1=idjc-mx:aux_rt
 
@@ -95,8 +95,8 @@ original code: Robert Reif posted to the wine mailinglist
 
 modified by: Ralf Beck (musical_snake@gmx.de)
 
-port mapping, config file, dynamic client naming, bringing
-back in line with Robert Reif's code
+port mapping, config file, dynamic client naming, bringing back in line with
+Robert Reif's code
 	Peter L Jones (pljones@users.sf.net)
 
 fix for windows-style path handling: William Steidtmann
@@ -107,6 +107,12 @@ todo:
 
 4. CHANGE LOG
 -------------
+0.7.4:
+08-APR-2008: Updates to the README.TXT (PLJ)
+02-APR-2008: Move update to "toggle" to hopefully better place (PLJ)
+24-MCH-2008: Don't trace in win32_callback.  Set patch-level to 4. (PLJ)
+09-JAN-2008: Nedko Arnaudov supplied a fix for Nuendo under WINE.
+
 0.7.3:
 27-DEC-2007: Make slaving to jack transport work, correct port allocation bug. (RB)
 

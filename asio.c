@@ -504,7 +504,7 @@ WRAP_THISCALL( void __stdcall, IWineASIOImpl_getDriverName, (LPWINEASIO iface, c
 WRAP_THISCALL( long __stdcall, IWineASIOImpl_getDriverVersion, (LPWINEASIO iface))
 {
     TRACE("(%p)\n", iface);
-    return 70; // 0.7 (patch level 0)
+    return 74; // 0.7 (patch level 4)
 }
 
 WRAP_THISCALL( void __stdcall, IWineASIOImpl_getErrorMessage, (LPWINEASIO iface, char *string))
@@ -642,10 +642,33 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
 
 WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_stop, (LPWINEASIO iface))
 {
+    int i;
     IWineASIOImpl * This = (IWineASIOImpl*)iface;
     TRACE("(%p)\n", iface);
 
     This->state = Exit;
+
+    for (i = 0; i < This->num_inputs; i++) {
+        if (This->input[i].port == NULL) {
+            TRACE("(%p) Not registered input port %i\n", This, i);
+            continue;
+        }
+
+        if (jack_port_unregister(This->client, This->input[i].port)) {
+            TRACE("(%p) Unregistered input port %i: '%s' (%p)\n", This, i, This->input[i].port_name, This->input[i].port);
+        }
+    }
+
+    for (i = 0; i < This->num_outputs; i++) {
+        if (This->output[i].port == NULL) {
+            TRACE("(%p) Not registered output port %i\n", This, i);
+            continue;
+        }
+
+        if (jack_port_unregister(This->client, This->output[i].port)) {
+            TRACE("(%p) Unregistered output port %i: '%s' (%p)\n", This, i, This->output[i].port_name, This->output[i].port);
+        }
+    }
 
     if (jack_deactivate(This->client))
     {
@@ -1113,7 +1136,6 @@ static int jack_process(jack_nframes_t nframes, void * arg)
         if (This->client_state == Init)
             This->client_state = Run;
 
-        This->toggle = This->toggle ? 0 : 1;
         This->sample_position = transport.frame;
 
         /* get the input data from JACK and copy it to the ASIO buffers */
@@ -1152,6 +1174,8 @@ static int jack_process(jack_nframes_t nframes, void * arg)
             }
         }
 
+        This->toggle = This->toggle ? 0 : 1;
+
 //      This->callbacks->bufferSwitch(This->toggle, ASIOTrue);
 //  }
 
@@ -1166,7 +1190,7 @@ static DWORD CALLBACK win32_callback(LPVOID arg)
 {
     IWineASIOImpl * This = (IWineASIOImpl*)arg;
     struct sched_param attr;
-    TRACE("(%p)\n", arg);
+    //TRACE("(%p)\n", arg);
 
     attr.sched_priority = 86;
     sched_setscheduler(0, SCHED_FIFO, &attr);
