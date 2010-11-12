@@ -2,6 +2,7 @@
  * Copyright (C) 2006 Robert Reif
  * Portions copyright (C) 2007 Ralf Beck
  * Portions copyright (C) 2007 Peter L Jones
+ * Portions copyright (C) 2009 Joakim Hernberg
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -42,6 +43,7 @@
 #include "wine/debug.h"
 
 #include <jack/jack.h>
+#include <jack/thread.h>
 
 #define IEEE754_64FLOAT 1
 #include "asio.h"
@@ -139,6 +141,8 @@ typedef struct _Channel {
    jack_port_t *port;
 } Channel;
 
+typedef struct sched_param SCHED_PARAM;
+
 struct IWineASIOImpl
 {
     /* COM stuff */
@@ -181,6 +185,7 @@ struct IWineASIOImpl
     jack_client_t       *client;
     long                client_state;
     long                toggle;
+    SCHED_PARAM         jack_client_priority;
 
     /* callback stuff */
     HANDLE              thread;
@@ -381,7 +386,7 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     This->sample_rate = 48000.0;
     This->block_frames = 1024;
     This->input_latency = This->block_frames;
-    This->output_latency = This->block_frames * 2;
+    This->output_latency = This->block_frames;
     This->miliseconds = (long)((double)(This->block_frames * 1000) / This->sample_rate);
     This->callbacks = NULL;
     This->sample_position = 0;
@@ -396,24 +401,13 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     This->tc_read = FALSE;
     This->terminate = FALSE;
     This->state = Init;
+    This->jack_client_priority.sched_priority = -1;
 
     sem_init(&This->semaphore1, 0, 0);
     sem_init(&This->semaphore2, 0, 0);
 
     This->start_event = CreateEventW(NULL, FALSE, FALSE, NULL);
     This->stop_event = CreateEventW(NULL, FALSE, FALSE, NULL);
-    This->thread = CreateThread(NULL, 0, win32_callback, (LPVOID)This, 0, &This->thread_id);
-    if (This->thread)
-    {
-        WaitForSingleObject(This->start_event, INFINITE);
-        CloseHandle(This->start_event);
-        This->start_event = INVALID_HANDLE_VALUE;
-    }
-    else
-    {
-        WARN("(%p) Couldn't create thread\n", This);
-        return ASIOFalse;
-    }
 
     set_clientname(This);
 
@@ -438,6 +432,22 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     if (status & JackServerStarted)
         TRACE("(%p) JACK server started\n", This);
 
+    /* get maximum reccomended client priority from JACK */
+
+    This->jack_client_priority.sched_priority = jack_client_real_time_priority (This->client);
+    This->thread = CreateThread(NULL, 0, win32_callback, (LPVOID)This, 0, &This->thread_id);
+    if (This->thread)
+    {
+        WaitForSingleObject(This->start_event, INFINITE);
+        CloseHandle(This->start_event);
+        This->start_event = INVALID_HANDLE_VALUE;
+    }
+    else
+    {
+        WARN("(%p) Couldn't create thread\n", This);
+        return ASIOFalse;
+    }
+
 //  if (status & JackNameNotUnique)
 //  {
 //      strcpy(This->client_name, jack_get_client_name(This->client));
@@ -451,7 +461,7 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
 
     This->miliseconds = (long)((double)(This->block_frames * 1000) / This->sample_rate);
     This->input_latency = This->block_frames;
-    This->output_latency = This->block_frames * 2;
+    This->output_latency = This->block_frames;
 
 //  TRACE("sample rate: %f\n", This->sample_rate);
 //  TRACE("buffer size: %ld\n", This->block_frames);
@@ -504,7 +514,7 @@ WRAP_THISCALL( void __stdcall, IWineASIOImpl_getDriverName, (LPWINEASIO iface, c
 WRAP_THISCALL( long __stdcall, IWineASIOImpl_getDriverVersion, (LPWINEASIO iface))
 {
     TRACE("(%p)\n", iface);
-    return 74; // 0.7 (patch level 4)
+    return 75; // 0.7 (patch level 5)
 }
 
 WRAP_THISCALL( void __stdcall, IWineASIOImpl_getErrorMessage, (LPWINEASIO iface, char *string))
@@ -1024,8 +1034,12 @@ ERROR_PARAM:
 
 WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_controlPanel, (LPWINEASIO iface))
 {
-    TRACE("(%p) stub!\n", iface);
+    char* arg_list[] = { "qjackctl", NULL };
 
+    TRACE ("Opening ASIO control panel\n");
+
+    if (fork() == 0)
+        execvp (arg_list[0], arg_list);
     return ASE_OK;
 }
 
@@ -1121,8 +1135,8 @@ static int jack_process(jack_nframes_t nframes, void * arg)
     IWineASIOImpl * This = (IWineASIOImpl*)arg;
     int i, j;
     jack_default_audio_sample_t *in, *out;
-    jack_transport_state_t ts;
-    jack_position_t transport;
+//  jack_transport_state_t ts;
+//  jack_position_t transport;
 
 // ASIOSTInt32LSB support only
     int *buffer;
@@ -1130,13 +1144,13 @@ static int jack_process(jack_nframes_t nframes, void * arg)
     if (This->state != Run)
         return 0;
 
-    ts = jack_transport_query(This->client, &transport);
+//  ts = jack_transport_query(This->client, &transport);
 //  if (ts == JackTransportRolling)
 //  {
         if (This->client_state == Init)
             This->client_state = Run;
 
-        This->sample_position = transport.frame;
+        This->sample_position += nframes; //= transport.frame;
 
         /* get the input data from JACK and copy it to the ASIO buffers */
         for (i = 0; i < This->active_inputs; i++)
@@ -1189,14 +1203,22 @@ static int jack_process(jack_nframes_t nframes, void * arg)
 static DWORD CALLBACK win32_callback(LPVOID arg)
 {
     IWineASIOImpl * This = (IWineASIOImpl*)arg;
-    struct sched_param attr;
-    //TRACE("(%p)\n", arg);
 
-    attr.sched_priority = 86;
-    sched_setscheduler(0, SCHED_FIFO, &attr);
+    //TRACE("(%p)\n", arg);
+    TRACE ("win32 callback thread started\n");
+
+    /* set the priority of the win32 callback thread as suggested by JACK */
+    if (This->jack_client_priority.sched_priority != -1)   /* skip if not running realtime */
+        if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &This->jack_client_priority) == 0)
+            TRACE ("win32 callback set to SCHED_FIFO priority %d\n", This->jack_client_priority.sched_priority);
+    else
+            TRACE ("Error trying to set realtime priority of win32 callback\n");
+    else
+            TRACE ("Unable to set realtime priority of win32 callback, not running with realtime priority\n");
 
     /* let IWineASIO_Init know we are alive */
     SetEvent(This->start_event);
+    TRACE("Win32 thread running...\n");
 
     while (1)
     {
@@ -1207,7 +1229,7 @@ static DWORD CALLBACK win32_callback(LPVOID arg)
         if (This->terminate)
         {
             SetEvent(This->stop_event);
-            TRACE("terminated\n");
+            TRACE("Win32 thread terminated\n");
             return 0;
         }
         getNanoSeconds(&This->system_time);
@@ -1224,7 +1246,7 @@ static DWORD CALLBACK win32_callback(LPVOID arg)
                     This->asio_time.timeCode.timeCodeSamples.lo = This->asio_time.timeInfo.samplePosition.lo;
                     This->asio_time.timeCode.timeCodeSamples.hi = 0;
                 }
-                This->callbacks->bufferSwitchTimeInfo(&This->asio_time, This->toggle, ASIOFalse);
+                This->callbacks->bufferSwitchTimeInfo(&This->asio_time, This->toggle, ASIOTrue);
                 This->asio_time.timeInfo.flags &= ~(kSampleRateChanged | kClockSourceChanged);
             }
             else
