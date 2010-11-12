@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Robert Reif
+ * Copyright (C) 2006,2007 Robert Reif
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -70,6 +70,7 @@ MAKE_FUNCPTR(jack_port_get_buffer);
 MAKE_FUNCPTR(jack_get_ports);
 MAKE_FUNCPTR(jack_port_name);
 MAKE_FUNCPTR(jack_get_buffer_size);
+MAKE_FUNCPTR(jack_port_unregister);
 #undef MAKE_FUNCPTR
 
 void *jackhandle = NULL;
@@ -87,8 +88,8 @@ static GUID const CLSID_WineASIO = {
 #define twoRaisedTo32           4294967296.0
 #define twoRaisedTo32Reciprocal	(1.0 / twoRaisedTo32)
 
-#define MAX_INPUTS      2
-#define MAX_OUTPUTS     2
+#define MAX_INPUTS      32
+#define MAX_OUTPUTS     32
 
 /* ASIO drivers use the thiscall calling convention which only Microsoft compilers
  * produce.  These macros add an extra layer to fixup the registers properly for
@@ -182,19 +183,24 @@ struct IWineASIOImpl
     char                error_message[256];
     long                in_map[MAX_INPUTS];
     long                out_map[MAX_OUTPUTS];
-    long                num_inputs;
-    long                num_outputs;
-    short               *input_buffers[MAX_INPUTS][2];
-    short               *output_buffers[MAX_OUTPUTS][2];
+    void                *input_buffers[MAX_INPUTS][2];
+    void                *output_buffers[MAX_OUTPUTS][2];
     long                active_inputs;
     long                active_outputs;
     BOOL                time_info_mode;
     BOOL                tc_read;
     long                state;
+    unsigned int        sample_size;
+    int                 sample_type;
 
     /* JACK stuff */
+    char                client_name[64];
+    unsigned int        num_inputs;
     jack_port_t         *input_port[MAX_INPUTS];
+    const char		*input_names[MAX_INPUTS];
+    unsigned int        num_outputs;
     jack_port_t         *output_port[MAX_OUTPUTS];
+    const char		*output_names[MAX_INPUTS];
     jack_client_t       *client;
     long                client_state;
     long                toggle;
@@ -215,7 +221,7 @@ static ULONG WINAPI IWineASIOImpl_AddRef(LPWINEASIO iface)
 {
     IWineASIOImpl *This = (IWineASIOImpl *)iface;
     ULONG ref = InterlockedIncrement(&(This->ref));
-    TRACE("(%p) ref was %ld\n", This, ref - 1);
+    TRACE("(%p) ref was %d\n", This, ref - 1);
     return ref;
 }
 
@@ -223,7 +229,7 @@ static ULONG WINAPI IWineASIOImpl_Release(LPWINEASIO iface)
 {
     IWineASIOImpl *This = (IWineASIOImpl *)iface;
     ULONG ref = InterlockedDecrement(&(This->ref));
-    TRACE("(%p) ref was %ld\n", This, ref + 1);
+    TRACE("(%p) ref was %d\n", This, ref + 1);
 
     if (!ref) {
         fp_jack_client_close(This->client);
@@ -269,10 +275,25 @@ static HRESULT WINAPI IWineASIOImpl_QueryInterface(LPWINEASIO iface, REFIID riid
 WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *sysHandle))
 {
     IWineASIOImpl * This = (IWineASIOImpl*)iface;
+    jack_port_t *input, *output;
     jack_status_t status;
     int i;
+    const char ** ports;
     TRACE("(%p, %p)\n", iface, sysHandle);
 
+    strcpy(This->client_name, "Wine_ASIO_Jack_Client"); 
+#if 0
+    This->sample_type = ASIOSTInt16LSB;
+    This->sample_size = 2;
+#endif
+#if 1
+    This->sample_type = ASIOSTInt32LSB;
+    This->sample_size = 4;
+#endif
+#if 0
+    This->sample_type = ASIOSTFloat32LSB;
+    This->sample_size = 4;
+#endif
     This->sample_rate = 48000.0;
     This->block_frames = 1024;
     This->input_latency = This->block_frames;
@@ -313,14 +334,17 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     for (i = 0; i < MAX_INPUTS; i++)
     {
         This->in_map[i] = 0;
+        This->input_names[i] = 0;
     }
 
     for (i = 0; i < MAX_OUTPUTS; i++)
     {
         This->out_map[i] = 0;
+        This->output_names[i] = 0;
     }
 
-    This->client = fp_jack_client_open("Wine_ASIO_Jack_Client", JackNullOption, &status, NULL);
+    This->client = fp_jack_client_open(This->client_name, JackNullOption, &status, NULL);
+
     if (This->client == NULL)
     {
         WARN("failed to open jack server\n");
@@ -332,38 +356,91 @@ WRAP_THISCALL( ASIOBool __stdcall, IWineASIOImpl_init, (LPWINEASIO iface, void *
     if (status & JackServerStarted)
         TRACE("JACK server started\n");
 
+    if (status & JackNameNotUnique)
+    {
+        strcpy(This->client_name, jack_get_client_name(This->client));
+        TRACE("unique name `%s' assigned\n", This->client_name);
+    }
+
     fp_jack_set_process_callback(This->client, jack_process, This);
 
     This->sample_rate = fp_jack_get_sample_rate(This->client);
+    This->block_frames = fp_jack_get_buffer_size(This->client); 
+
     This->miliseconds = (long)((double)(This->block_frames * 1000) / This->sample_rate);
+    This->input_latency = This->block_frames;
+    This->output_latency = This->block_frames * 2;
 
     TRACE("sample rate: %f\n", This->sample_rate);
+    TRACE("buffer size: %ld\n", This->block_frames);
 
-    for (i = 0; i < MAX_INPUTS; i++)
+    /* create two temporary ports to see what's out there */
+    input = fp_jack_port_register(This->client, "input", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
+    output = fp_jack_port_register(This->client, "output", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+
+    if ((input == NULL) || (output == NULL))
     {
-        char name[32];
-        snprintf(name, sizeof(name), "Input%d", i);
-        This->input_port[i] = fp_jack_port_register(This->client, name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, i);
-        if (This->input_port[i] == 0)
-            break;
-
-        This->num_inputs++;
+        WARN("couldn't register ports\n");
+        return ASE_NotPresent;
     }
 
-    TRACE("found %ld inputs\n", This->num_inputs);
-
-    for (i = 0; i < MAX_OUTPUTS; i++)
+    /* you need to the client to find out what ports are available */
+    if (fp_jack_activate(This->client))
     {
-        char name[32];
-        snprintf(name, sizeof(name), "Output%d", i);
-        This->output_port[i] = fp_jack_port_register(This->client, name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, i);
-        if (This->output_port[i] == 0)
-            break;
-
-        This->num_outputs++;
+        WARN("couldn't activate client\n");
+        return ASE_NotPresent;
+    }
+                                                                                                                                         
+    /* get the list of avaliable input ports */
+    ports = fp_jack_get_ports(This->client, NULL, NULL, JackPortIsPhysical | JackPortIsOutput);
+                                                                                                                                         
+    if (ports == NULL)
+    {
+        WARN("couldn't get input ports\n");
+        return ASE_NotPresent;
     }
 
-    TRACE("found %ld outputs\n", This->num_outputs);
+    for (This->num_inputs = 0; This->num_inputs < MAX_INPUTS; This->num_inputs++)
+    {
+        if (ports[This->num_inputs])
+        {
+            This->input_names[This->num_inputs] = strdup(ports[This->num_inputs]);
+            TRACE("input port[%d] %s\n", This->num_inputs, This->input_names[This->num_inputs]);
+        }
+	else
+            break;
+    }
+
+    free(ports);
+
+    /* get the list of avaliable output ports */
+    ports = fp_jack_get_ports(This->client, NULL, NULL, JackPortIsPhysical | JackPortIsInput);
+
+    if (ports == NULL)
+    {
+        WARN("couldn't get output ports\n");
+        return ASE_NotPresent;
+    }
+
+    for (This->num_outputs = 0; This->num_outputs < MAX_OUTPUTS; This->num_outputs++)
+    {
+        if (ports[This->num_outputs])
+        {
+            This->output_names[This->num_outputs] = strdup(ports[This->num_outputs]);
+            TRACE("output port[%d] %s\n", This->num_outputs, This->output_names[This->num_outputs]);
+        }
+	else
+            break;
+    }
+
+    free(ports);
+
+    /* get rid of temporary ports */
+    fp_jack_port_unregister(This->client, input);
+    fp_jack_port_unregister(This->client, output);
+
+    TRACE("found %d inputs\n", This->num_inputs);
+    TRACE("found %d outputs\n", This->num_outputs);
 
     return ASIOTrue;
 }
@@ -390,7 +467,6 @@ WRAP_THISCALL( void __stdcall, IWineASIOImpl_getErrorMessage, (LPWINEASIO iface,
 WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
 {
     IWineASIOImpl * This = (IWineASIOImpl*)iface;
-    const char ** ports;
     int i;
     TRACE("(%p)\n", iface);
 
@@ -400,51 +476,43 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_start, (LPWINEASIO iface))
         This->system_time.lo = 0;
         This->system_time.hi = 0;
 
-        if (fp_jack_activate(This->client))
-        {
-            WARN("couldn't activate client\n");
-            return ASE_NotPresent;
-        }
-
-        ports = fp_jack_get_ports(This->client, NULL, NULL, JackPortIsPhysical | JackPortIsOutput);
-
-        if (ports == NULL)
-        {
-            WARN("couldn't get input ports\n");
-            return ASE_NotPresent;
-        }
-
         for (i = 0; i < This->active_inputs; i++)
         {
-            if (fp_jack_connect(This->client, ports[i], fp_jack_port_name(This->input_port[i])))
+            This->input_port[i] = fp_jack_port_register(This->client, This->input_names[i], JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, i);
+
+            if (This->input_port[i] == NULL) 
             {
                 WARN("input %d connect failed\n", i);
-                free(ports);
                 return ASE_NotPresent;
             }
-        }
 
-        free(ports);
+            TRACE("registered input port %d: %s\n", i, This->input_names[i]);
 
-        ports = fp_jack_get_ports(This->client, NULL, NULL, JackPortIsPhysical | JackPortIsInput);
-
-        if (ports == NULL)
-        {
-            WARN("couldn't get output ports\n");
-            return ASE_NotPresent;
+            if (fp_jack_connect(This->client, This->input_names[i], fp_jack_port_name(This->input_port[i])))
+            {
+                WARN("input %d connect failed\n", i);
+                return ASE_NotPresent;
+            }
         }
 
         for (i = 0; i < This->active_outputs; i++)
         {
-            if (fp_jack_connect(This->client, fp_jack_port_name(This->output_port[i]), ports[i]))
+            This->output_port[i] = fp_jack_port_register(This->client, This->output_names[i], JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, i);
+
+            if (This->output_port[i] == NULL) 
             {
                 WARN("output %d connect failed\n", i);
-                free(ports);
+                return ASE_NotPresent;
+            }
+
+            TRACE("registered output port %d: %s\n", i, This->output_names[i]);
+
+            if (fp_jack_connect(This->client, fp_jack_port_name(This->output_port[i]), This->output_names[i]))
+            {
+                WARN("output %d connect failed\n", i);
                 return ASE_NotPresent;
             }
         }
-
-        free(ports);
 
         This->state = Run;
         TRACE("started\n");
@@ -482,6 +550,8 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_getChannels, (LPWINEASIO iface
     if (numOutputChannels)
         *numOutputChannels = This->num_outputs;
 
+    TRACE("inputs: %d outputs: %d\n", This->num_inputs, This->num_outputs);
+
     return ASE_OK;
 }
 
@@ -516,6 +586,8 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_getBufferSize, (LPWINEASIO ifa
     if (granularity)
         *granularity = 0;
 
+    TRACE("min: %ld max: %ld preferred: %ld granularity: 0\n", This->block_frames, This->block_frames, This->block_frames);
+
     return ASE_OK;
 }
 
@@ -538,6 +610,8 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_getSampleRate, (LPWINEASIO ifa
     if (sampleRate)
         *sampleRate = This->sample_rate;
 
+    TRACE("rate: %f\n", This->sample_rate);
+
     return ASE_OK;
 }
 
@@ -559,6 +633,8 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_setSampleRate, (LPWINEASIO ifa
         if (This->callbacks && This->callbacks->sampleRateDidChange)
             This->callbacks->sampleRateDidChange(This->sample_rate);
     }
+
+    TRACE("rate: %f\n", This->sample_rate);
 
     return ASE_OK;
 }
@@ -623,13 +699,16 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_getChannelInfo, (LPWINEASIO if
 {
     IWineASIOImpl * This = (IWineASIOImpl*)iface;
     int i;
-    char name[32];
+    const char * name;
     TRACE("(%p, %p)\n", iface, info);
 
-    if (info->channel < 0 || (info->isInput ? info->channel >= MAX_INPUTS : info->channel >= MAX_OUTPUTS))
+    if (info->channel < 0 || (info->isInput ? info->channel >= This->num_inputs : info->channel >= This->num_outputs))
         return ASE_InvalidParameter;
 
-    info->type = ASIOSTInt16LSB;
+    TRACE("info->channel = %ld\n", info->channel);
+    TRACE("info->isInput = %ld\n", info->isInput);
+
+    info->type = This->sample_type;
     info->channelGroup = 0;
     info->isActive = ASIOFalse;
 
@@ -644,7 +723,7 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_getChannelInfo, (LPWINEASIO if
             }
         }
 
-        snprintf(name, sizeof(name), "Input %ld", info->channel);
+        name = This->input_names[info->channel];
     }
     else
     {
@@ -657,10 +736,15 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_getChannelInfo, (LPWINEASIO if
             }
         }
 
-        snprintf(name, sizeof(name), "Output %ld", info->channel);
+        name = This->output_names[info->channel];
     }
 
     strcpy(info->name, name);
+
+    TRACE("info->isActive = %ld\n", info->isActive);
+    TRACE("info->channelGroup = %ld\n", info->channelGroup);
+    TRACE("info->type = %ld\n", info->type);
+    TRACE("info->name = %s\n", info->name);
 
     return ASE_OK;
 }
@@ -722,8 +806,8 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_createBuffers, (LPWINEASIO ifa
             }
 
             This->in_map[This->active_inputs] = info->channelNum;
-            This->input_buffers[This->active_inputs][0] = HeapAlloc(GetProcessHeap(), 0, This->block_frames * sizeof(short));
-            This->input_buffers[This->active_inputs][1] = HeapAlloc(GetProcessHeap(), 0, This->block_frames * sizeof(short));
+            This->input_buffers[This->active_inputs][0] = HeapAlloc(GetProcessHeap(), 0, This->block_frames * This->sample_size);
+            This->input_buffers[This->active_inputs][1] = HeapAlloc(GetProcessHeap(), 0, This->block_frames * This->sample_size);
             if (This->input_buffers[This->active_inputs][0] && This->input_buffers[This->active_inputs][1])
             {
                 info->buffers[0] = This->input_buffers[This->active_inputs][0];
@@ -754,8 +838,8 @@ WRAP_THISCALL( ASIOError __stdcall, IWineASIOImpl_createBuffers, (LPWINEASIO ifa
             }
 
             This->out_map[This->active_outputs] = info->channelNum;
-            This->output_buffers[This->active_outputs][0] = HeapAlloc(GetProcessHeap(), 0, This->block_frames * sizeof(short));
-            This->output_buffers[This->active_outputs][1] = HeapAlloc(GetProcessHeap(), 0, This->block_frames * sizeof(short));
+            This->output_buffers[This->active_outputs][0] = HeapAlloc(GetProcessHeap(), 0, This->block_frames * This->sample_size);
+            This->output_buffers[This->active_outputs][1] = HeapAlloc(GetProcessHeap(), 0, This->block_frames * This->sample_size);
             if (This->output_buffers[This->active_outputs][0] && This->output_buffers[This->active_outputs][1])
             {
                 info->buffers[0] = This->output_buffers[This->active_outputs][0];
@@ -912,6 +996,7 @@ BOOL init_jack()
     LOAD_FUNCPTR(jack_get_ports);
     LOAD_FUNCPTR(jack_port_name);
     LOAD_FUNCPTR(jack_get_buffer_size);
+    LOAD_FUNCPTR(jack_port_unregister);
 #undef LOAD_FUNCPTR
 
     return TRUE;
@@ -931,8 +1016,10 @@ HRESULT asioCreateInstance(REFIID riid, LPVOID *ppobj)
     IWineASIOImpl * pobj;
     TRACE("(%s, %p)\n", debugstr_guid(riid), ppobj);
 
-    if (!init_jack())
+    if (!init_jack()) {
+        WARN("init_jack failed!\n");
         return ERROR_NOT_SUPPORTED;
+    }
  
     pobj = HeapAlloc(GetProcessHeap(), 0, sizeof(*pobj));
     if (pobj == NULL) {
@@ -973,14 +1060,41 @@ static int jack_process(jack_nframes_t nframes, void * arg)
         This->sample_position += nframes;
 
         /* get the input data from JACK and copy it to the ASIO buffers */
-        for (i = 0; i < This->active_inputs; i++)
+        switch (This->sample_type)
         {
-            short * buffer = This->input_buffers[i][This->toggle];
+        case ASIOSTInt16LSB:
+            for (i = 0; i < This->active_inputs; i++)
+            {
+                short * buffer = This->input_buffers[i][This->toggle];
 
-            in = fp_jack_port_get_buffer(This->input_port[i], nframes);
+                in = fp_jack_port_get_buffer(This->input_port[i], nframes);
 
-            for (j = 0; j < nframes; j++)
-                buffer[j] = in[j] * 32767.0f;
+                for (j = 0; j < nframes; j++)
+                    buffer[j] = in[j] * 32767.0f;
+            }
+            break;
+        case ASIOSTInt32LSB:
+            for (i = 0; i < This->active_inputs; i++)
+            {
+                int32_t * buffer = This->input_buffers[i][This->toggle];
+
+                in = fp_jack_port_get_buffer(This->input_port[i], nframes);
+
+                for (j = 0; j < nframes; j++)
+                    buffer[j] = in[j] * 2147483647.0f;
+            }
+            break;
+        case ASIOSTFloat32LSB:
+            for (i = 0; i < This->active_inputs; i++)
+            {
+                float * buffer = This->input_buffers[i][This->toggle];
+
+                in = fp_jack_port_get_buffer(This->input_port[i], nframes);
+
+                for (j = 0; j < nframes; j++)
+                    buffer[j] = in[j];
+            }
+            break;
         }
 
         /* call the ASIO user callback to read the input data and fill the output data */
@@ -993,14 +1107,41 @@ static int jack_process(jack_nframes_t nframes, void * arg)
         sem_wait(&This->semaphore2);
 
         /* copy the ASIO data to JACK */
-        for (i = 0; i < This->active_outputs; i++)
+        switch (This->sample_type)
         {
-            short * buffer = This->output_buffers[i][This->toggle];
+        case ASIOSTInt16LSB:
+            for (i = 0; i < This->active_outputs; i++)
+            {
+                short * buffer = This->output_buffers[i][This->toggle];
 
-            out = fp_jack_port_get_buffer(This->output_port[i], nframes);
+                out = fp_jack_port_get_buffer(This->output_port[i], nframes);
 
-            for (j = 0; j < nframes; j++)
-                out[j] = buffer[j] / 32767.0f;
+                for (j = 0; j < nframes; j++)
+                    out[j] = buffer[j] / 32767.0f;
+            }
+            break;
+        case ASIOSTInt32LSB:
+            for (i = 0; i < This->active_outputs; i++)
+            {
+                int32_t * buffer = This->output_buffers[i][This->toggle];
+
+                out = fp_jack_port_get_buffer(This->output_port[i], nframes);
+
+                for (j = 0; j < nframes; j++)
+                    out[j] = buffer[j] / 2147483647.0f;
+            }
+            break;
+        case ASIOSTFloat32LSB:
+            for (i = 0; i < This->active_outputs; i++)
+            {
+                float * buffer = This->output_buffers[i][This->toggle];
+
+                out = fp_jack_port_get_buffer(This->output_port[i], nframes);
+
+                for (j = 0; j < nframes; j++)
+                    out[j] = buffer[j];
+            }
+            break;
         }
     }
     else if (ts == JackTransportStopped)
