@@ -529,7 +529,7 @@ static HRESULT register_driver(void)
 {
     LPCSTR asio_key = "Software\\ASIO\\Wine ASIO";
     LPCSTR clsid = "CLSID";
-    LPCSTR wine_clsid = "{48D0C522-BFCC-45cc-8B84-17F25F33E6E8}";
+    LPCSTR wine_clsid = "{48D0C522-BFCC-45CC-8B84-17F25F33E6E8}";
     LPCSTR desc = "Description";
     LPCSTR wine_desc = "Wine ASIO Driver";
     HKEY key;

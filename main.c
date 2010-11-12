@@ -152,7 +152,6 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
     return CLASS_E_CLASSNOTAVAILABLE;
 }
 
-
 /*******************************************************************************
  * DllCanUnloadNow
  * Determines whether the DLL is in use.
