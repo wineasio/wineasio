@@ -506,7 +506,7 @@ static GUID const CLSID_WineASIO = {
 
 static struct regsvr_coclass const coclass_list[] = {
     {   &CLSID_WineASIO,
-	"Wine ASIO Object",
+	"WineASIO Object",
 	NULL,
 	"wineasio.dll",
 	"Apartment"
@@ -527,11 +527,11 @@ static struct regsvr_interface const interface_list[] = {
  */
 static HRESULT register_driver(void)
 {
-    LPCSTR asio_key = "Software\\ASIO\\Wine ASIO";
+    LPCSTR asio_key = "Software\\ASIO\\WineASIO";
     LPCSTR clsid = "CLSID";
     LPCSTR wine_clsid = "{48D0C522-BFCC-45CC-8B84-17F25F33E6E8}";
     LPCSTR desc = "Description";
-    LPCSTR wine_desc = "Wine ASIO Driver";
+    LPCSTR wine_desc = "WineASIO Driver";
     HKEY key;
     LONG rc;
 
@@ -577,7 +577,7 @@ HRESULT WINAPI DllRegisterServer(void)
  */
 static HRESULT unregister_driver(void)
 {
-    LPCSTR asio_key = "Software\\ASIO\\Wine ASIO";
+    LPCSTR asio_key = "Software\\ASIO\\WineASIO";
 
     /* FIXME */
     return recursive_delete_keyA(HKEY_LOCAL_MACHINE, asio_key);

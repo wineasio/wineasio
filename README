@@ -1,0 +1,180 @@
+CONTENTS
+========
+1. Installation
+2. General Information
+3. Change Log
+4. Legal Stuff
+
+1. INSTALLATION
+---------------
+
+Copy the file asio.h from Steinberg's ASIO SDK to the wineasio source
+directory.
+
+Due to a bug in winegcc, and the confusion regarding where 32bit wine dlls go
+on the various 64bit linux distributions,  I've hardcoded support for
+/usr/lib/wine and /usr/lib32/wine into the makefile.  If your distro uses
+another path edit the makefile and replace /usr/lib32/wine with the correct
+path.  Look at the last line of the makefile.  This wineasio should compile and
+install 32 bit wineasio on all 64 bit linux'.
+
+To build, type (as a normal user): make
+To install, type (as root): make install
+To register the wineasio object, type (as a normal user): regsvr32 wineasio.dll
+
+The last command registers the ASIO COM object in the default prefix "~/.wine".
+If you use another prefix you will have to explicitly specify it,
+like "env WINEPREFIX=~/asioapp regsvr32 wineasio.dll"
+
+2. GENERAL INFORMATION
+----------------------
+
+The wineasio driver has been almost completely refactored, so the changes are
+far too many to explain in detail. These are some of the more obvious changes:
+
+Wineasio takes advantage of a new function in the jack api, which lets jack
+create the wine callback thread.  This results in a much cleaner callback
+without having to wait on semaphores, requires jack1 (0.117.0) or jack2 (1.9.4)
+or later.
+
+The default sample type has been changed to use ASIOSTFloat32LSB, which is the
+native format of jack, and allows the removal of the sample rate conversion
+from the processing callback.
+
+Wineasio can now slave to the jack transport.
+
+Support has been added for jack's xrun_callback() and bufsize_callback(), the
+latter means that asio apps get notified if the jack buffersize changes.
+
+CreateBuffers() can now change jack's buffersize if so desired.  Must be
+enabled in the registry, see below.
+
+The old configuration file has been removed and been replaced by a registry key
+(HKEY_CURRENT_USER\Software\Wine\WineASIO).  All these options can be overriden
+by an environment variable.  The key is automatically created with default
+values if it doesn't exist when the driver initializes. It contains the
+following values:
+
+[Number of inputs] & [Number of outputs]
+These two settings control the number of jack ports that wineasio will try to
+open.  Defaults are 16 in and 16 out.  Environment variables are
+WINEASIO_NUMBER_INPUTS and WINEASIO_NUMBER_OUTPUTS
+
+[Autostart server]
+Defaults to off (0), setting it to 1 enables wineasio to launch the jack
+server.  See the jack documentation for further details. The environment
+variable is WINEASIO_AUTOSTART_SERVER, and it can be set to on or off.
+
+[Connect to hardware]
+Defaults to on (1), makes wineasio try to connect the asio channels to the
+physical I/O ports on your hardware.  Setting it to 0 disables it. The
+environment variable is WINEASIO_CONNECT_TO_HARDWARE, and it can be set to on
+or off.
+
+[Fixed buffersize]
+Defaults to on (1) and is the old behaviour where the buffer size is controlled
+by jack and wineasio has no say in the matter.  When set to 0, an asio app will
+be able to change the jack buffer size when calling CreateBuffers(). The
+environment variable is WINEASIO_FIXED_BUFFERSIZE and it can be set to on or
+off.
+
+[Preferred buffersize]
+Defaults to 1024, and is one of the sizes returned by GetBufferSize(), see the
+ASIO documentation for details.  Must be a power of 2. The other values
+returned by the driver are hardcoded in the source, see ASIO_MINIMUM_BUFFERSIZE
+which is set at 16, and ASIO_MAXIMUM_BUFFERSIZE which is set to 8192. The
+environment variable is WINEASIO_PREFERRED_BUFFERSIZE.  Be careful, if you set
+a size that isn't supported by the backend, the jack server will most likely
+shut down, might be a good idea to change ASIO_MINIMUM_BUFFERSIZE and
+ASIO_MAXIMUM_BUFFERSIZE to values you know work on your system before building.
+
+[Sample type]
+Defaults to 19 (decimal) which is ASIOSTFloat32LSB, setting it to 18 (dec)
+makes wineasio use ASIOSTIntt32LSB (the old default).  Needed for some apps
+that don't properly implement the ASIO specification.  The environment variable
+is WINEASIO_SAMPLE_TYPE.
+
+In addition there is a WINEASIO_CLIENT_NAME environment variable, that
+overrides the JACK client name derrived from the program name.
+
+3. CHANGE LOG
+-------------
+
+0.9.0
+19-FEB-2011: Nearly complete refactoring of the wineasio codebase (asio.c) (JH)
+
+0.8.1:
+05-OCT-2010: Code from Win32 callback thread moved to JACK process callback, except for bufferSwitch() call.
+05-OCT-2010: Switch from int to float for samples.
+
+0.8.0:
+08-AUG-2010: Forward port JackWASIO changes... needs testing hard. (PLJ)
+
+0.7.6:
+27-DEC-2009: Fixes for compilation on 64bit platform. (PLJ)
+
+0.7.5:
+29-Oct-2009: Added fork with call to qjackctl from ASIOControlPanel(). (JH)
+29-Oct-2009: Changed the SCHED_FIFO priority of the win32 callback thread. (JH)
+28-Oct-2009: Fixed wrongly reported output latency. (JH)
+
+0.7.4:
+08-APR-2008: Updates to the README.TXT (PLJ)
+02-APR-2008: Move update to "toggle" to hopefully better place (PLJ)
+24-MCH-2008: Don't trace in win32_callback.  Set patch-level to 4. (PLJ)
+09-JAN-2008: Nedko Arnaudov supplied a fix for Nuendo under WINE.
+
+0.7.3:
+27-DEC-2007: Make slaving to jack transport work, correct port allocation bug. (RB)
+
+0.7:
+01-DEC-2007: In a fit of insanity, I merged JackLab and Robert Reif code bases. (PLJ)
+
+0.6:
+21-NOV-2007: add dynamic client naming (PLJ)
+
+0.0.3:
+17-NOV-2007: Unique port name code (RR)
+
+0.5:
+03-SEP-2007: port mapping and config file (PLJ)
+
+0.3:
+30-APR-2007: corrected connection of in/outputs (RB)
+
+0.1:
+???????????: Initial RB release (RB)
+
+0.0.2:
+12-SEP-2006: Fix thread bug, tidy up code (RR)
+
+0.0.1:
+31-AUG-2006: Initial version (RR)
+
+4. LEGAL STUFF
+--------------
+
+Copyright (C) 2006 Robert Reif
+Portions copyright (C) 2007 Ralf Beck
+Portions copyright (C) 2007 Johnny Petrantoni
+Portions copyright (C) 2007 Stephane Letz
+Portions copyright (C) 2008 William Steidtmann
+Portions copyright (C) 2010 Peter L Jones
+Portions copyright (C) 2010 Torben Hohn
+Portions copyright (C) 2010 Nedko Arnaudov
+Portions copyright (C) 2010 Joakim Hernberg
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+
