@@ -88,12 +88,6 @@ a size that isn't supported by the backend, the jack server will most likely
 shut down, might be a good idea to change ASIO_MINIMUM_BUFFERSIZE and
 ASIO_MAXIMUM_BUFFERSIZE to values you know work on your system before building.
 
-[Sample type]
-Defaults to 19 (decimal) which is ASIOSTFloat32LSB, setting it to 18 (dec)
-makes wineasio use ASIOSTIntt32LSB (the old default).  Needed for some apps
-that don't properly implement the ASIO specification.  The environment variable
-is WINEASIO_SAMPLE_TYPE.
-
 In addition there is a WINEASIO_CLIENT_NAME environment variable, that
 overrides the JACK client name derrived from the program name.
 
