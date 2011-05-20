@@ -1317,7 +1317,7 @@ static int bufsize_callback(jack_nframes_t nframes, void *arg)
     IWineASIOImpl   *This = (IWineASIOImpl*)arg;
 
     if(This->asio_driver_state != Running)
-        return 1;
+        return 0;
 
     if (This->asio_callbacks->asioMessage(kAsioSelectorSupported, kAsioResetRequest, 0 , 0))
         This->asio_callbacks->asioMessage(kAsioResetRequest, 0, 0, 0);
@@ -1341,7 +1341,7 @@ static int process_callback(jack_nframes_t nframes, void *arg)
 #endif
 
     if (This->asio_driver_state != Running)
-        return 1;
+        return 0;
 
     /* get the input data from JACK and copy it to the ASIO buffers */
 #ifdef ASIOST32INT
@@ -1429,7 +1429,7 @@ static int srate_callback(jack_nframes_t nframes, void *arg)
     IWineASIOImpl   *This = (IWineASIOImpl*)arg;
 
     if(This->asio_driver_state != Running)
-        return 1;
+        return 0;
 
     This->asio_sample_rate = nframes;
     This->asio_callbacks->sampleRateDidChange(nframes);
@@ -1441,7 +1441,7 @@ static int xrun_callback(void *arg)
     IWineASIOImpl   *This = (IWineASIOImpl*)arg;
 
     if(This->asio_driver_state != Running)
-        return 1;
+        return 0;
 
     if (This->asio_callbacks->asioMessage(kAsioSelectorSupported, kAsioResyncRequest, 0 , 0))
         This->asio_callbacks->asioMessage(kAsioResyncRequest, 0, 0, 0);
