@@ -1339,10 +1339,13 @@ static int process_callback(jack_nframes_t nframes, void *arg)
 #ifndef _WIN64
     DWORD                       temp_time;
 #endif
-
+    // Output silence if the ASIO callback isn't running yet
     if (This->asio_driver_state != Running)
+    {
+        for (i = 0; i < This->asio_active_outputs; i++)
+            memset(jack_port_get_buffer(This->output_channel[i].port, nframes), 0, sizeof (jack_default_audio_sample_t) * nframes);
         return 0;
-
+    }
     /* get the input data from JACK and copy it to the ASIO buffers */
 #ifdef ASIOST32INT
     for (i = 0; i < This->asio_active_inputs; i++)
