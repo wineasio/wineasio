@@ -251,7 +251,6 @@ HIDDEN void __thiscall_OutputReady(void);
 static int  bufsize_callback (jack_nframes_t nframes, void *arg);
 static int  process_callback (jack_nframes_t nframes, void *arg);
 static int  srate_callback (jack_nframes_t nframes, void *arg);
-static int  xrun_callback(void *arg);
 
 /*
  *  Support functions
@@ -523,15 +522,6 @@ HIDDEN ASIOBool STDMETHODCALLTYPE Init(LPWINEASIO iface, void *sysRef)
         jack_client_close(This->jack_client);
         HeapFree(GetProcessHeap(), 0, This->input_channel);
         ERR("Unable to register JACK samplerate change callback\n");
-        return ASIOFalse;
-    }
-
-
-    if (jack_set_xrun_callback(This->jack_client, xrun_callback, This))
-    {
-        jack_client_close(This->jack_client);
-        HeapFree(GetProcessHeap(), 0, This->input_channel);
-        ERR("Unable to register JACK xrun callback\n");
         return ASIOFalse;
     }
 
@@ -1436,18 +1426,6 @@ static int srate_callback(jack_nframes_t nframes, void *arg)
 
     This->asio_sample_rate = nframes;
     This->asio_callbacks->sampleRateDidChange(nframes);
-    return 0;
-}
-
-static int xrun_callback(void *arg)
-{
-    IWineASIOImpl   *This = (IWineASIOImpl*)arg;
-
-    if(This->asio_driver_state != Running)
-        return 0;
-
-    if (This->asio_callbacks->asioMessage(kAsioSelectorSupported, kAsioResyncRequest, 0 , 0))
-        This->asio_callbacks->asioMessage(kAsioResyncRequest, 0, 0, 0);
     return 0;
 }
 
