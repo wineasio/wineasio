@@ -1654,16 +1654,16 @@ static BOOL configure_driver(IWineASIOImpl *This)
     if (GetEnvironmentVariableA("WINEASIO_CONNECT_TO_HARDWARE", environment_variable, MAX_ENVIRONMENT_SIZE))
     {
         if (!strcasecmp(environment_variable, "on"))
-            This->wineasio_autostart_server = TRUE;
+            This->wineasio_connect_to_hardware = TRUE;
         else if (!strcasecmp(environment_variable, "off"))
-            This->wineasio_autostart_server = FALSE;
+            This->wineasio_connect_to_hardware = FALSE;
     }
 
     if (GetEnvironmentVariableA("WINEASIO_FIXED_BUFFERSIZE", environment_variable, MAX_ENVIRONMENT_SIZE))
     {
         if (!strcasecmp(environment_variable, "on"))
             This->wineasio_fixed_buffersize = TRUE;
-        if (!strcasecmp(environment_variable, "off"))
+        else if (!strcasecmp(environment_variable, "off"))
             This->wineasio_fixed_buffersize = FALSE;
     }
 
