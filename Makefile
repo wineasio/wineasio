@@ -114,4 +114,4 @@ $(wineasio_dll_MODULE).so: $(wineasio_dll_OBJS)
 	$(WINECC) $(wineasio_dll_LDFLAGS) -o $@ $(wineasio_dll_OBJS) $(wineasio_dll_LIBRARY_PATH) $(DEFLIB) $(wineasio_dll_DLLS:%=-l%) $(wineasio_dll_LIBRARIES:%=-l%)
 
 install:
-	if [ -d $(PREFIX)/lib32/wine ]; then cp wineasio.dll.so $(PREFIX)/lib32/wine; else cp wineasio.dll.so $(PREFIX)/lib/wine; fi
+	if [ -d $(PREFIX)/lib32/wine ]; then cp wineasio.dll.so $(DESTDIR)$(PREFIX)/lib32/wine; else cp wineasio.dll.so $(DESTDIR)$(PREFIX)/lib/wine; fi
