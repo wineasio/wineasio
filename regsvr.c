@@ -31,7 +31,7 @@
 
 #include "wine/debug.h"
 
-WINE_DEFAULT_DEBUG_CHANNEL(asio);
+/* WINE_DEFAULT_DEBUG_CHANNEL(asio); */
 
 /*
  * Near the bottom of this file are the exported DllRegisterServer and
@@ -560,7 +560,7 @@ HRESULT WINAPI DllRegisterServer(void)
 {
     HRESULT hr;
 
-    TRACE("\n");
+    /* TRACE("\n"); */
 
     hr = register_coclasses(coclass_list);
     if (SUCCEEDED(hr))
@@ -590,7 +590,7 @@ HRESULT WINAPI DllUnregisterServer(void)
 {
     HRESULT hr;
 
-    TRACE("\n");
+    /* TRACE("\n"); */
 
     hr = unregister_coclasses(coclass_list);
     if (SUCCEEDED(hr))

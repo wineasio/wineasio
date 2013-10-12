@@ -25,7 +25,7 @@
 #include "objbase.h"
 
 #include "wine/debug.h"
-WINE_DEFAULT_DEBUG_CHANNEL(asio);
+/* WINE_DEFAULT_DEBUG_CHANNEL(asio); */
 
 /* {48D0C522-BFCC-45cc-8B84-17F25F33E6E8} */
 static GUID const CLSID_WineASIO = {
@@ -44,8 +44,8 @@ extern HRESULT WINAPI WineASIOCreateInstance(REFIID riid, LPVOID *ppobj);
 
 static HRESULT WINAPI CF_QueryInterface(LPCLASSFACTORY iface, REFIID riid, LPVOID *ppobj)
 {
-    IClassFactoryImpl *This = (IClassFactoryImpl *)iface;
-    FIXME("(%p, %s, %p) stub!\n", This, debugstr_guid(riid), ppobj);
+    /* IClassFactoryImpl *This = (IClassFactoryImpl *)iface;
+    FIXME("(%p, %s, %p) stub!\n", This, debugstr_guid(riid), ppobj); */
     if (ppobj == NULL)
         return E_POINTER;
     return E_NOINTERFACE;
@@ -55,7 +55,7 @@ static ULONG WINAPI CF_AddRef(LPCLASSFACTORY iface)
 {
     IClassFactoryImpl *This = (IClassFactoryImpl *)iface;
     ULONG ref = InterlockedIncrement(&(This->ref));
-    TRACE("iface: %p, ref has been set to %x\n", This, ref);
+    /* TRACE("iface: %p, ref has been set to %x\n", This, ref); */
     return ref;
 }
 
@@ -63,33 +63,33 @@ static ULONG WINAPI CF_Release(LPCLASSFACTORY iface)
 {
     IClassFactoryImpl *This = (IClassFactoryImpl *)iface;
     ULONG ref = InterlockedDecrement(&(This->ref));
-    TRACE("iface %p, ref has been set to %x\n", This, ref);
+    /* TRACE("iface %p, ref has been set to %x\n", This, ref); */
     /* static class, won't be freed */
     return ref;
 }
 
 static HRESULT WINAPI CF_CreateInstance(LPCLASSFACTORY iface, LPUNKNOWN pOuter, REFIID riid, LPVOID *ppobj)
 {
-    IClassFactoryImpl *This = (IClassFactoryImpl *)iface;
-    TRACE("iface: %p, pOuter: %p, riid: %s, ppobj: %p)\n", This, pOuter, debugstr_guid(riid), ppobj);
+    /* IClassFactoryImpl *This = (IClassFactoryImpl *)iface;
+    TRACE("iface: %p, pOuter: %p, riid: %s, ppobj: %p)\n", This, pOuter, debugstr_guid(riid), ppobj); */
 
     if (pOuter)
         return CLASS_E_NOAGGREGATION;
 
     if (ppobj == NULL) {
-        WARN("invalid parameter\n");
+        /* WARN("invalid parameter\n"); */
         return E_INVALIDARG;
     }
 
     *ppobj = NULL;
-    TRACE("Creating the WineASIO object\n");
+    /* TRACE("Creating the WineASIO object\n"); */
     return WineASIOCreateInstance(riid, ppobj);
 }
 
 static HRESULT WINAPI CF_LockServer(LPCLASSFACTORY iface, BOOL dolock)
 {
-    IClassFactoryImpl *This = (IClassFactoryImpl *)iface;
-    FIXME("iface: %p, dolock: %d) stub!\n", This, dolock);
+    /* IClassFactoryImpl *This = (IClassFactoryImpl *)iface;
+    FIXME("iface: %p, dolock: %d) stub!\n", This, dolock); */
     return S_OK;
 }
 
@@ -122,10 +122,10 @@ static IClassFactoryImpl WINEASIO_CF = { &CF_Vtbl, 1 };
  */
 HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 {
-    TRACE("rclsid: %s, riid: %s, ppv: %p)\n", debugstr_guid(rclsid), debugstr_guid(riid), ppv);
+    /* TRACE("rclsid: %s, riid: %s, ppv: %p)\n", debugstr_guid(rclsid), debugstr_guid(riid), ppv); */
 
     if (ppv == NULL) {
-        WARN("invalid parameter\n");
+        /* WARN("invalid parameter\n"); */
         return E_INVALIDARG;
     }
 
@@ -133,7 +133,7 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 
     if (!IsEqualIID(riid, &IID_IClassFactory) && !IsEqualIID(riid, &IID_IUnknown))
     {
-        WARN("no interface for %s\n", debugstr_guid(riid));
+        /* WARN("no interface for %s\n", debugstr_guid(riid)); */
         return E_NOINTERFACE;
     }
 
@@ -144,7 +144,7 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
         return S_OK;
     }
 
-    WARN("rclsid: %s, riid: %s, ppv: %p): no class found.\n", debugstr_guid(rclsid), debugstr_guid(riid), ppv);
+    /* WARN("rclsid: %s, riid: %s, ppv: %p): no class found.\n", debugstr_guid(rclsid), debugstr_guid(riid), ppv); */
     return CLASS_E_CLASSNOTAVAILABLE;
 }
 
@@ -159,7 +159,7 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
  */
 HRESULT WINAPI DllCanUnloadNow(void)
 {
-    FIXME("(void): stub\n");
+    /* FIXME("(void): stub\n"); */
     return S_FALSE;
 }
 
@@ -168,7 +168,7 @@ HRESULT WINAPI DllCanUnloadNow(void)
  */
 BOOL WINAPI DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
-    TRACE("hInstDLL: %p, fdwReason: %x lpvReserved: %p)\n", hInstDLL, fdwReason, lpvReserved);
+    /* TRACE("hInstDLL: %p, fdwReason: %x lpvReserved: %p)\n", hInstDLL, fdwReason, lpvReserved); */
 
     switch (fdwReason) {
     case DLL_PROCESS_ATTACH:

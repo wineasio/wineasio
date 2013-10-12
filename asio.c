@@ -1694,7 +1694,7 @@ HRESULT WINAPI WineASIOCreateInstance(REFIID riid, LPVOID *ppobj)
 {
     IWineASIOImpl   *pobj;
 
-    TRACE("riid: %s, ppobj: %p\n", debugstr_guid(riid), ppobj);
+    /* TRACE("riid: %s, ppobj: %p\n", debugstr_guid(riid), ppobj); */
 
     pobj = HeapAlloc(GetProcessHeap(), 0, sizeof(*pobj));
     if (pobj == NULL)
@@ -1707,6 +1707,6 @@ HRESULT WINAPI WineASIOCreateInstance(REFIID riid, LPVOID *ppobj)
     pobj->ref = 1;
     TRACE("pobj = %p\n", pobj);
     *ppobj = pobj;
-    TRACE("return %p\n", *ppobj);
+    /* TRACE("return %p\n", *ppobj); */
     return S_OK;
 }
