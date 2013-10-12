@@ -43,8 +43,8 @@ from the processing callback.
 
 Wineasio can now slave to the jack transport.
 
-Support has been added for jack's xrun_callback() and bufsize_callback(), the
-latter means that asio apps get notified if the jack buffersize changes.
+Support has been added for jack's bufsize_callback(), meaning that asio apps
+get notified if the jack buffersize changes.
 
 CreateBuffers() can now change jack's buffersize if so desired.  Must be
 enabled in the registry, see below.
