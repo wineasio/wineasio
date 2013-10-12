@@ -141,7 +141,7 @@ static HRESULT register_interfaces(struct regsvr_interface const *list)
 
 	if (list->name) {
 	    res = RegSetValueExA(iid_key, NULL, 0, REG_SZ,
-				 (CONST BYTE*)(list->name),
+				 (const BYTE*)(list->name),
 				 strlen(list->name) + 1);
 	    if (res != ERROR_SUCCESS) goto error_close_iid_key;
 	}
@@ -161,7 +161,7 @@ static HRESULT register_interfaces(struct regsvr_interface const *list)
 
 	    wsprintfW(buf, fmt, list->num_methods);
 	    res = RegSetValueExW(key, NULL, 0, REG_SZ,
-				 (CONST BYTE*)buf,
+				 (const BYTE*)buf,
 				 (lstrlenW(buf) + 1) * sizeof(WCHAR));
 	    RegCloseKey(key);
 
@@ -236,7 +236,7 @@ static HRESULT register_coclasses(struct regsvr_coclass const *list)
 
 	if (list->name) {
 	    res = RegSetValueExA(clsid_key, NULL, 0, REG_SZ,
-				 (CONST BYTE*)(list->name),
+				 (const BYTE*)(list->name),
 				 strlen(list->name) + 1);
 	    if (res != ERROR_SUCCESS) goto error_close_clsid_key;
 	}
@@ -255,11 +255,11 @@ static HRESULT register_coclasses(struct regsvr_coclass const *list)
 	    if (res != ERROR_SUCCESS) goto error_close_clsid_key;
 
 	    res = RegSetValueExA(ips32_key, NULL, 0, REG_SZ,
-				 (CONST BYTE*)list->ips32,
+				 (const BYTE*)list->ips32,
 				 lstrlenA(list->ips32) + 1);
 	    if (res == ERROR_SUCCESS && list->ips32_tmodel)
 		res = RegSetValueExA(ips32_key, tmodel_valuename, 0, REG_SZ,
-				     (CONST BYTE*)list->ips32_tmodel,
+				     (const BYTE*)list->ips32_tmodel,
 				     strlen(list->ips32_tmodel) + 1);
 	    RegCloseKey(ips32_key);
 	    if (res != ERROR_SUCCESS) goto error_close_clsid_key;
@@ -357,7 +357,7 @@ static LONG register_key_defvalueW(
     res = RegCreateKeyExW(base, name, 0, NULL, 0,
 			  KEY_READ | KEY_WRITE, NULL, &key, NULL);
     if (res != ERROR_SUCCESS) return res;
-    res = RegSetValueExW(key, NULL, 0, REG_SZ, (CONST BYTE*)value,
+    res = RegSetValueExW(key, NULL, 0, REG_SZ, (const BYTE*)value,
 			 (lstrlenW(value) + 1) * sizeof(WCHAR));
     RegCloseKey(key);
     return res;
@@ -377,7 +377,7 @@ static LONG register_key_defvalueA(
     res = RegCreateKeyExW(base, name, 0, NULL, 0,
 			  KEY_READ | KEY_WRITE, NULL, &key, NULL);
     if (res != ERROR_SUCCESS) return res;
-    res = RegSetValueExA(key, NULL, 0, REG_SZ, (CONST BYTE*)value,
+    res = RegSetValueExA(key, NULL, 0, REG_SZ, (const BYTE*)value,
 			 lstrlenA(value) + 1);
     RegCloseKey(key);
     return res;
@@ -403,7 +403,7 @@ static LONG register_progid(
 
     if (name) {
 	res = RegSetValueExA(progid_key, NULL, 0, REG_SZ,
-			     (CONST BYTE*)name, strlen(name) + 1);
+			     (const BYTE*)name, strlen(name) + 1);
 	if (res != ERROR_SUCCESS) goto error_close_progid_key;
     }
 
@@ -542,10 +542,10 @@ static HRESULT register_driver(void)
 
     if (rc == ERROR_SUCCESS)
     {
-        rc = RegSetValueExA(key, clsid, 0, REG_SZ, (CONST BYTE *)wine_clsid, strlen(wine_clsid) + 1);
+        rc = RegSetValueExA(key, clsid, 0, REG_SZ, (const BYTE *)wine_clsid, strlen(wine_clsid) + 1);
 
         if (rc == ERROR_SUCCESS)
-            rc = RegSetValueExA(key, desc, 0, REG_SZ, (CONST BYTE *)wine_desc, strlen(wine_desc) + 1);
+            rc = RegSetValueExA(key, desc, 0, REG_SZ, (const BYTE *)wine_desc, strlen(wine_desc) + 1);
 
         RegCloseKey(key);
     }
