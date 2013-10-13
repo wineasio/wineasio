@@ -18,6 +18,11 @@ another path edit the makefile and replace /usr/lib32/wine with the correct
 path.  Look at the last line of the makefile.  This wineasio should compile and
 install 32 bit wineasio on all 64 bit linux'.
 
+Wineasio by default uses 32 bit float as sample format, if this is a problem for
+an ASIO host, wineasio can be built to use 32 bit integer by defining the
+ASIOST32INT variable.  Do this by defining ASIOST32INT in the source code or by
+passing it to the compiler.
+
 To build, type (as a normal user): make
 To install, type (as root): make install
 To register the wineasio object, type (as a normal user): regsvr32 wineasio.dll
