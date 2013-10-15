@@ -99,6 +99,9 @@ overrides the JACK client name derrived from the program name.
 3. CHANGE LOG
 -------------
 
+0.9.1
+15-OCT-2013: Various bug fixes (JH)
+
 0.9.0
 19-FEB-2011: Nearly complete refactoring of the wineasio codebase (asio.c) (JH)
 
