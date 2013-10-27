@@ -1355,7 +1355,7 @@ static int process_callback(jack_nframes_t nframes, void *arg)
 
 #ifdef _WIN64
     This->asio_sample_position += nframes;
-    This->asio_sample_position & 0xffffffff;    /* make 32bit since JACK's position is 32bit anyways */
+    This->asio_sample_position &= 0xffffffff;   /* make 32bit since JACK's position is 32bit anyways */
     This->asio_time_stamp = timeGetTime() * 1000000;
 #else
     This->asio_sample_position.lo += nframes;
