@@ -7,7 +7,7 @@
  * Portions copyright (C) 2010 Peter L Jones
  * Portions copyright (C) 2010 Torben Hohn
  * Portions copyright (C) 2010 Nedko Arnaudov
- * Portions copyright (C) 2010 Joakim Hernberg
+ * Portions copyright (C) 2013 Joakim Hernberg
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,12 +22,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
- */
-
-/*
- *  Todo (maybe):
- *  create a freely distributable asio.h replacement
- *  add ASIOOutputReady() support
  */
 
 #include <stdio.h>
@@ -259,10 +253,8 @@ static int  srate_callback (jack_nframes_t nframes, void *arg);
 HRESULT WINAPI  WineASIOCreateInstance(REFIID riid, LPVOID *ppobj);
 static  BOOL    configure_driver(IWineASIOImpl *This);
 
-#ifdef __WINESRC__
 static DWORD WINAPI jack_thread_creator_helper(LPVOID arg);
 static int          jack_thread_creator(pthread_t* thread_id, const pthread_attr_t* attr, void *(*function)(void*), void* arg);
-#endif
 
 /* {48D0C522-BFCC-45cc-8B84-17F25F33E6E8} */
 static GUID const CLSID_WineASIO = {
@@ -297,7 +289,6 @@ static const IWineASIOVtbl WineASIO_Vtbl =
     (void *) THISCALL(OutputReady)
 };
 
-#ifdef __WINESRC__
 /* structure needed to create the JACK callback thread in the wine process context */
 struct {
     void        *(*jack_callback_thread) (void*);
@@ -305,7 +296,6 @@ struct {
     pthread_t   jack_callback_pthread_id;
     HANDLE      jack_callback_thread_created;
 } jack_thread_creator_privates;
-#endif
 
 /*****************************************************************************
  * Interface method definitions
@@ -424,9 +414,7 @@ HIDDEN ASIOBool STDMETHODCALLTYPE Init(LPWINEASIO iface, void *sysRef)
 
     This->sys_ref = sysRef;
 
-#ifdef __WINESRC__
     mlockall(MCL_FUTURE);
-#endif
 
     if (!configure_driver(This))
     {
@@ -497,9 +485,7 @@ HIDDEN ASIOBool STDMETHODCALLTYPE Init(LPWINEASIO iface, void *sysRef)
     }
     TRACE("%i IOChannel structures initialized\n", This->wineasio_number_inputs + This->wineasio_number_outputs);
 
-#ifdef __WINESRC__
     jack_set_thread_creator(jack_thread_creator);
-#endif
 
     if (jack_set_process_callback(This->jack_client, process_callback, This))
     {
@@ -1433,7 +1419,6 @@ static int srate_callback(jack_nframes_t nframes, void *arg)
  *  Support functions
  */
 
-#ifdef __WINESRC__
 /* Function called by JACK to create a thread in the wine process context,
  *  uses the global structure jack_thread_creator_privates to communicate with jack_thread_creator_helper() */
 static int jack_thread_creator(pthread_t* thread_id, const pthread_attr_t* attr, void *(*function)(void*), void* arg)
@@ -1459,7 +1444,6 @@ static DWORD WINAPI jack_thread_creator_helper(LPVOID arg)
     jack_thread_creator_privates.jack_callback_thread(jack_thread_creator_privates.arg);
     return 0;
 }
-#endif
 
 static BOOL configure_driver(IWineASIOImpl *This)
 {
