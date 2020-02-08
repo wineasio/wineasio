@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>WineASIOSettings</class>
+ <widget class="QDialog" name="WineASIOSettings">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>310</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QGroupBox" name="group_ports">
+     <property name="title">
+      <string>Audio Ports</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_22">
+      <item>
+       <layout class="QHBoxLayout" name="layout_ports_in">
+        <item>
+         <widget class="QLabel" name="label_ports_in">
+          <property name="toolTip">
+           <string>Number of jack ports that wineasio will try to open.
+Default is 16</string>
+          </property>
+          <property name="text">
+           <string>Number of inputs:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="sb_ports_in">
+          <property name="toolTip">
+           <string>Number of jack ports that wineasio will try to open.
+Default is 16</string>
+          </property>
+          <property name="maximum">
+           <number>128</number>
+          </property>
+          <property name="singleStep">
+           <number>2</number>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="layout_ports_out">
+        <item>
+         <widget class="QLabel" name="label_ports_out">
+          <property name="toolTip">
+           <string>Number of jack ports that wineasio will try to open.
+Default is 16</string>
+          </property>
+          <property name="text">
+           <string>Number of outputs:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="sb_ports_out">
+          <property name="toolTip">
+           <string>Number of jack ports that wineasio will try to open.
+Default is 16</string>
+          </property>
+          <property name="minimum">
+           <number>2</number>
+          </property>
+          <property name="maximum">
+           <number>128</number>
+          </property>
+          <property name="singleStep">
+           <number>2</number>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="layout_ports_connect_hw">
+        <item>
+         <spacer name="spacer_ports_connect_hw">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>150</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="cb_ports_connect_hw">
+          <property name="toolTip">
+           <string>Try to connect the asio channels to the
+physical I/O ports on your hardware.
+Default is on</string>
+          </property>
+          <property name="text">
+           <string>Connect to hardware</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="group_jack">
+     <property name="title">
+      <string>JACK Options</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_23">
+      <item>
+       <layout class="QHBoxLayout" name="layout_jack_autostart">
+        <item>
+         <spacer name="spacer_jack_autostart">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>150</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="cb_jack_autostart">
+          <property name="toolTip">
+           <string>Enable wineasio to launch the jack server.
+Default is off</string>
+          </property>
+          <property name="text">
+           <string>Autostart server</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="layout_jack_fixed_bsize">
+        <item>
+         <spacer name="spacer_jack_fixed_bsize">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>150</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="cb_jack_fixed_bsize">
+          <property name="toolTip">
+           <string>When on, an asio app will be able to change the jack buffer size.
+Default is off</string>
+          </property>
+          <property name="text">
+           <string>Fixed buffersize</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="layout_jack_buffer_size">
+        <item>
+         <widget class="QLabel" name="label_jack_buffer_size">
+          <property name="text">
+           <string>Preferred buffersize:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="cb_jack_buffer_size"/>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok|QDialogButtonBox::RestoreDefaults</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>WineASIOSettings</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>WineASIOSettings</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>
