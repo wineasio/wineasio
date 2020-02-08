@@ -1,6 +1,14 @@
 # WineASIO
 
-WineASIO is a ASIO driver for Wine, allowing to run Windows audio applications with low latency (as JACK clients).
+WineASIO provides an ASIO to JACK driver for WINE.  
+ASIO is the most common Windows low-latency driver, so is commonly used in audio workstation programs.
+
+You can, for example, use with FLStudio under GNU/Linux systems (together with JACK).
+
+![Screenshot](screenshot.png)
+
+For best results with Debian-based distributions,
+enable the [KXStudio repositories](https://kx,studio/Repositories) and install WineASIO from there.
 
 ### INSTALLATION
 
