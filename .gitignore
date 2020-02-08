@@ -1,4 +1,6 @@
 *~
 *.o
 *.so
-__pycache__
+build32/
+build64/
+__pycache__/
