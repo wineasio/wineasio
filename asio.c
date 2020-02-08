@@ -36,11 +36,9 @@
 #ifdef DEBUG
 #include "wine/debug.h"
 #else
-// FIXME convert MESSAGE, WARN and ERR into proper macros with fprintf
 #define TRACE(...) {}
-#define MESSAGE(...) {}
-#define WARN(...) {}
-#define ERR(...) {}
+#define WARN(fmt, ...) {} fprintf(stdout, fmt, ##__VA_ARGS__)
+#define ERR(fmt, ...) {} fprintf(stderr, fmt, ##__VA_ARGS__)
 #endif
 
 #include "objbase.h"
