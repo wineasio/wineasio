@@ -1,14 +1,6 @@
 # WineASIO - ASIO to JACK driver for WINE
 
-CONTENTS
-========
-1. Installation
-2. General Information
-3. Change Log
-4. Legal Stuff
-
-1. INSTALLATION
----------------
+## INSTALLATION
 
 Do the following to build for 32-bit Wine.
 
@@ -59,8 +51,7 @@ To use another prefix specify it explicitly, like:
 env WINEPREFIX=~/asioapp regsvr32 wineasio.dll
 ```
 
-2. GENERAL INFORMATION
-----------------------
+## GENERAL INFORMATION
 
 ASIO apps get notified if the jack buffersize changes.
 
@@ -109,8 +100,7 @@ might be a good idea to change ASIO_MINIMUM_BUFFERSIZE and ASIO_MAXIMUM_BUFFERSI
 In addition there is a WINEASIO_CLIENT_NAME environment variable,
 that overrides the JACK client name derrived from the program name.
 
-3. CHANGE LOG
--------------
+## CHANGE LOG
 
 #### 0.10.0
 * 08-FEB-2020: Fix code to work with latest Wine
@@ -173,8 +163,7 @@ that overrides the JACK client name derrived from the program name.
 #### 0.0.1
 * 31-AUG-2006: Initial version (RR)
 
-4. LEGAL STUFF
---------------
+## LEGAL STUFF
 
 Copyright (C) 2006 Robert Reif  
 Portions copyright (C) 2007 Ralf Beck  
