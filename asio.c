@@ -30,7 +30,16 @@
 #include <sys/mman.h>
 #include <pthread.h>
 
+#ifdef DEBUG
 #include "wine/debug.h"
+#else
+// FIXME convert MESSAGE, WARN and ERR into proper macros with fprintf
+#define TRACE(...) {}
+#define MESSAGE(...) {}
+#define WARN(...) {}
+#define ERR(...) {}
+#endif
+
 #include "objbase.h"
 #include "mmsystem.h"
 #include "winreg.h"
@@ -42,7 +51,9 @@
 #define IEEE754_64FLOAT 1
 #include "asio.h"
 
+#ifdef DEBUG
 WINE_DEFAULT_DEBUG_CHANNEL(asio);
+#endif
 
 #define MAX_ENVIRONMENT_SIZE        6
 #define ASIO_MAX_NAME_LENGTH        32
@@ -1016,7 +1027,9 @@ HIDDEN ASIOError STDMETHODCALLTYPE CreateBuffers(LPWINEASIO iface, ASIOBufferInf
         else
         {
             if (This->asio_current_buffersize == bufferSize)
+            {
                 TRACE("Buffer size already set to %i\n", This->asio_current_buffersize);
+            }
             else
             {
                 This->asio_current_buffersize = bufferSize;
