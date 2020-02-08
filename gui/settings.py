@@ -22,7 +22,7 @@ import os
 import sys
 
 from PyQt5.QtCore import pyqtSlot, QDir
-from PyQt5.QtWidgets import QApplication, QDialog
+from PyQt5.QtWidgets import QApplication, QDialog, QDialogButtonBox
 
 # ---------------------------------------------------------------------------------------------------------------------
 
@@ -88,6 +88,7 @@ class WineASIOSettingsDialog(QDialog, Ui_WineASIOSettings):
         self.loadSettings()
 
         self.accepted.connect(self.slot_saveSettings)
+        self.buttonBox.button(QDialogButtonBox.RestoreDefaults).clicked.connect(self.slot_restoreDefaults)
         self.sb_ports_in.valueChanged.connect(self.slot_flagChanged)
         self.sb_ports_out.valueChanged.connect(self.slot_flagChanged)
         self.cb_ports_connect_hw.clicked.connect(self.slot_flagChanged)
@@ -119,6 +120,18 @@ class WineASIOSettingsDialog(QDialog, Ui_WineASIOSettings):
     @pyqtSlot()
     def slot_flagChanged(self):
         self.changed = True
+
+    @pyqtSlot()
+    def slot_restoreDefaults(self):
+        self.changed = True
+
+        self.sb_ports_in.setValue(16)
+        self.sb_ports_out.setValue(16)
+        self.cb_ports_connect_hw.setChecked(True)
+
+        self.cb_jack_autostart.setChecked(False)
+        self.cb_jack_fixed_bsize.setChecked(True)
+        self.cb_jack_buffer_size.setCurrentIndex(BUFFER_SIZE_LIST.index(1024))
 
     @pyqtSlot()
     def slot_saveSettings(self):
