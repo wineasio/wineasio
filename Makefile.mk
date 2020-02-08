@@ -83,7 +83,8 @@ C_SRCS                = $(wineasio_dll_C_SRCS)
 
 ### Generic targets
 
-all: rtaudio/include/asio.h $(DLLS:%=build$(M)/%.so)
+all:
+build: rtaudio/include/asio.h $(DLLS:%=build$(M)/%.so)
 
 ### Build rules
 
