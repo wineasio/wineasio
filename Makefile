@@ -10,14 +10,26 @@ EXES                  =
 
 ### Common settings
 
-CEXTRA                = -m32 -g -O2 -D__WINESRC__ -D_REENTRANT -fPIC -Wall -pipe -fno-strict-aliasing -Wdeclaration-after-statement -Wwrite-strings -Wpointer-arith
-CXXEXTRA              = -m32 -D__WINESRC__ -D_REENTRANT -fPIC -Wall -pipe -fno-strict-aliasing -Wdeclaration-after-statement -Wwrite-strings -Wpointer-arith
+CEXTRA                = -m32 -D_REENTRANT -fPIC -Wall -pipe
+CEXTRA               += -fno-strict-aliasing -Wdeclaration-after-statement -Wwrite-strings -Wpointer-arith
+CEXTRA               += -Werror=implicit-function-declaration
+CEXTRA               += $(shell pkg-config --cflags jack)
 RCEXTRA               =
-INCLUDE_PATH          = -I. -I/usr/include -I$(PREFIX)/include -I$(PREFIX)/include/wine -I$(PREFIX)/include/wine/windows
+INCLUDE_PATH          = -I. -Irtaudio/include
+INCLUDE_PATH         += -I$(PREFIX)/include/wine
+INCLUDE_PATH         += -I$(PREFIX)/include/wine/windows
+INCLUDE_PATH         += -I$(PREFIX)/include/wine-development
+INCLUDE_PATH         += -I$(PREFIX)/include/wine-development/wine/windows
 DLL_PATH              =
 LIBRARY_PATH          =
 LIBRARIES             = -ljack
 
+ifeq ($(DEBUG),true)
+CEXTRA               += -O0 -DDEBUG -g -D__WINESRC__
+LIBRARIES            +=
+else
+CEXTRA               += -O2 -DNDEBUG -fvisibility=hidden
+endif
 
 ### wineasio.dll sources and settings
 
@@ -25,14 +37,16 @@ wineasio_dll_MODULE   = wineasio.dll
 wineasio_dll_C_SRCS   = asio.c \
 			main.c \
 			regsvr.c
-wineasio_dll_CXX_SRCS =
 wineasio_dll_RC_SRCS  =
 wineasio_dll_LDFLAGS  = -shared \
 			-m32 \
-			$(wineasio_dll_MODULE:%=%.spec) \
 			-mnocygwin \
+			$(wineasio_dll_MODULE:%=%.spec) \
 			-L/usr/lib32/wine \
-			-L/usr/lib32
+			-L/usr/lib/i386-linux-gnu/wine \
+			-L/usr/lib/i386-linux-gnu/wine-development \
+			-L/opt/wine-staging/lib \
+			-L/opt/wine-staging/lib/wine
 wineasio_dll_DLL_PATH =
 wineasio_dll_DLLS     = odbc32 \
 			ole32 \
@@ -41,7 +55,6 @@ wineasio_dll_LIBRARY_PATH=
 wineasio_dll_LIBRARIES= uuid
 
 wineasio_dll_OBJS     = $(wineasio_dll_C_SRCS:.c=.o) \
-			$(wineasio_dll_CXX_SRCS:.cpp=.o) \
 			$(wineasio_dll_RC_SRCS:.rc=.res)
 
 
@@ -49,21 +62,19 @@ wineasio_dll_OBJS     = $(wineasio_dll_C_SRCS:.c=.o) \
 ### Global source lists
 
 C_SRCS                = $(wineasio_dll_C_SRCS)
-CXX_SRCS              = $(wineasio_dll_CXX_SRCS)
 RC_SRCS               = $(wineasio_dll_RC_SRCS)
 
 
 ### Tools
 
 CC = gcc
-CXX = g++
 WINECC = winegcc
 RC = wrc
 
 
 ### Generic targets
 
-all: asio.h $(SUBDIRS) $(DLLS:%=%.so) $(EXES:%=%.so)
+all: rtaudio/include/asio.h $(SUBDIRS) $(DLLS:%=%.so) $(EXES:%=%.so)
 
 ### Build rules
 
@@ -80,12 +91,6 @@ DEFINCL = $(INCLUDE_PATH) $(DEFINES) $(OPTIONS)
 .c.o:
 	$(CC) -c $(DEFINCL) $(CFLAGS) $(CEXTRA) -o $@ $<
 
-.cpp.o:
-	$(CXX) -c $(CXXFLAGS) $(CXXEXTRA) $(DEFINCL) -o $@ $<
-
-.cxx.o:
-	$(CXX) -c $(CXXFLAGS) $(CXXEXTRA) $(DEFINCL) -o $@ $<
-
 .rc.res:
 	$(RC) $(RCFLAGS) $(RCEXTRA) $(DEFINCL) -fo$@ $<
 
@@ -95,7 +100,7 @@ CLEAN_FILES     = y.tab.c y.tab.h lex.yy.c core *.orig *.rej \
                   \\\#*\\\# *~ *% .\\\#*
 
 clean:: $(SUBDIRS:%=%/__clean__) $(EXTRASUBDIRS:%=%/__clean__)
-	$(RM) $(CLEAN_FILES) $(RC_SRCS:.rc=.res) $(C_SRCS:.c=.o) $(CXX_SRCS:.cpp=.o)
+	$(RM) $(CLEAN_FILES) $(RC_SRCS:.rc=.res) $(C_SRCS:.c=.o)
 	$(RM) $(DLLS:%=%.so) $(EXES:%=%.so) $(EXES:%.exe=%)
 
 $(SUBDIRS:%=%/__clean__): dummy
