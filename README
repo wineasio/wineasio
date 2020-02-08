@@ -10,17 +10,17 @@ CONTENTS
 
 Do the following to build for 32-bit Wine.
 # make clean
-# make
+# make 32
 
 To install (substitute with the path to the 32-bit wine libs for your distro).
-# sudo cp wineasio.dll.so /usr/lib32/wine/wineasio.dll.so 
+# sudo cp build32/wineasio.dll.so /usr/lib32/wine/wineasio.dll.so 
 
 Do the following to build for 64-bit Wine.
 # make clean
-# make -f Makefile64
+# make 64
 
 To install (substitute with the path to the 64 bit wine libs for your distro).
-# sudo cp wineasio.dll.so /usr/lib/wine/wineasio.dll.so 
+# sudo cp build64/wineasio.dll.so /usr/lib/wine/wineasio.dll.so 
 
 Finally the dll must be registered in the wineprefix.
 For both 32 and 64 bit wine do:
