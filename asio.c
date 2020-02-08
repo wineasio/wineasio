@@ -43,7 +43,9 @@
 #include "objbase.h"
 #include "mmsystem.h"
 #include "winreg.h"
+#ifndef WINE_NO_UNICODE
 #include "wine/unicode.h"
+#endif
 
 #include <jack/jack.h>
 #include <jack/thread.h>
@@ -1431,6 +1433,16 @@ static int srate_callback(jack_nframes_t nframes, void *arg)
 /*****************************************************************************
  *  Support functions
  */
+
+#ifdef WINE_NO_UNICODE
+/* Funtion required as unicode.h no longer in WINE */
+static WCHAR *strrchrW(const WCHAR* str, WCHAR ch)
+{
+    WCHAR *ret = NULL;
+    do { if (*str == ch) ret = (WCHAR *)(ULONG_PTR)str; } while (*str++);
+    return ret;
+}
+#endif
 
 /* Function called by JACK to create a thread in the wine process context,
  *  uses the global structure jack_thread_creator_privates to communicate with jack_thread_creator_helper() */
