@@ -14,34 +14,34 @@ enable the [KXStudio repositories](https://kx.studio/Repositories) and install W
 
 Do the following to build for 32-bit Wine.
 
-```
+```sh
 make clean
 make 32
 ```
 
 To install (substitute with the path to the 32-bit wine libs for your distro).
 
-```
+```sh
 sudo cp build32/wineasio.dll.so /usr/lib32/wine/wineasio.dll.so 
 ```
 
 Do the following to build for 64-bit Wine.
 
-```
+```sh
 make clean
 make 64
 ```
 
 To install (substitute with the path to the 64-bit wine libs for your distro).
 
-```
+```sh
 sudo cp build64/wineasio.dll.so /usr/lib/wine/wineasio.dll.so 
 ```
 
 Finally the dll must be registered in the wineprefix.
 For both 32 and 64-bit wine do:
 
-```
+```sh
 regsvr32 wineasio.dll
 
 ```
@@ -50,14 +50,14 @@ On a 64-bit system with wine supporting both 32 and 64-bit applications,
 regsrv32 will register the 32-bit driver in a 64-bit prefix,
 use the following command to register the 64-bit driver in a 64-bit wineprefix:
 
-```
-wine64 regsvr32 wineaiso.dll
+```sh
+wine64 regsvr32 wineasio.dll
 ```
 
 regsvr32 registers the ASIO COM object in the default prefix `~/.wine`.  
 To use another prefix specify it explicitly, like:
 
-```
+```sh
 env WINEPREFIX=~/asioapp regsvr32 wineasio.dll
 ```
 
