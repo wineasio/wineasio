@@ -43,7 +43,7 @@
 #include "objbase.h"
 #include "mmsystem.h"
 #include "winreg.h"
-#ifndef WINE_NO_UNICODE
+#ifdef WINE_WITH_UNICODE
 #include "wine/unicode.h"
 #endif
 
@@ -1434,7 +1434,7 @@ static int srate_callback(jack_nframes_t nframes, void *arg)
  *  Support functions
  */
 
-#ifdef WINE_NO_UNICODE
+#ifndef WINE_WITH_UNICODE
 /* Funtion required as unicode.h no longer in WINE */
 static WCHAR *strrchrW(const WCHAR* str, WCHAR ch)
 {

@@ -8,7 +8,7 @@ You can, for example, use with FLStudio under GNU/Linux systems (together with J
 ![Screenshot](screenshot.png)
 
 For best results with Debian-based distributions,
-enable the [KXStudio repositories](https://kx,studio/Repositories) and install WineASIO from there.
+enable the [KXStudio repositories](https://kx.studio/Repositories) and install WineASIO from there.
 
 ### INSTALLATION
 
