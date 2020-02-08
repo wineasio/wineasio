@@ -8,14 +8,6 @@ CONTENTS
 1. INSTALLATION
 ---------------
 
-Copy the file asio.h from Steinberg's ASIO SDK to the wineasio source
-directory.
-
-Wineasio by default uses 32 bit float as sample format (the native format used
-by Jack), if this causes a problem for an ASIO host, wineasio can be built to
-use 32 bit integer by defining the ASIOST32INT variable.  Do this by defining
-ASIOST32INT in the source code or by passing it as an argument to the compiler.
-
 Do the following to build for 32 bit Wine.
 # make clean
 # make
@@ -28,7 +20,6 @@ it compatible with both 32 and 64bit Wine/Linux.  A separate Makefile has also
 been added for 64bit.
 
 Do the following to build for 64bit Wine.
-# ./prepare_64bit_asio
 # make clean
 # make -f Makefile64
 
@@ -52,31 +43,16 @@ To use another prefix specify it explicitly, like:
 2. GENERAL INFORMATION
 ----------------------
 
-The wineasio driver has been almost completely refactored, so the changes are
-far too many to explain in detail. These are some of the more obvious changes:
+Wineasio can slave to the jack transport.
 
-Wineasio takes advantage of a new function in the jack api, which lets jack
-create the wine callback thread.  This results in a much cleaner callback
-without having to wait on semaphores, requires jack1 (0.117.0) or jack2 (1.9.4)
-or later.
+ASIO apps get notified if the jack buffersize changes.
 
-The default sample type has been changed to use ASIOSTFloat32LSB, which is the
-native format of jack, and allows the removal of the sample rate conversion
-from the processing callback.
+WineASIO can change jack's buffersize if so desired. Must be enabled in the registry, see below.
 
-Wineasio can now slave to the jack transport.
-
-Support has been added for jack's bufsize_callback(), meaning that asio apps
-get notified if the jack buffersize changes.
-
-CreateBuffers() can now change jack's buffersize if so desired.  Must be
-enabled in the registry, see below.
-
-The old configuration file has been removed and been replaced by a registry key
-(HKEY_CURRENT_USER\Software\Wine\WineASIO).  All these options can be overriden
-by an environment variable.  The key is automatically created with default
-values if it doesn't exist when the driver initializes. It contains the
-following values:
+The configuration of WineASIO is done with Windows registry (HKEY_CURRENT_USER\Software\Wine\WineASIO).
+All these options can be overriden by an environment variable.
+The key is automatically created with default values if it doesn't exist when the driver initializes.
+It contains the following values:
 
 [Number of inputs] & [Number of outputs]
 These two settings control the number of jack ports that wineasio will try to
@@ -116,6 +92,10 @@ overrides the JACK client name derrived from the program name.
 
 3. CHANGE LOG
 -------------
+
+0.10.0
+08-FEB-2020: Fix code to work with latest Wine
+08-FEB-2020: Add custom GUI for WineASIO settings, made by PyQt (taken off Cadence project code)
 
 0.9.2
 28-OCT-2013: Add 64bit support and some small fixes
@@ -187,18 +167,7 @@ Portions copyright (C) 2010 Torben Hohn
 Portions copyright (C) 2010 Nedko Arnaudov
 Portions copyright (C) 2011 Christian Schoenebeck
 Portions copyright (C) 2013 Joakim Hernberg
+Portions copyright (C) 2020 Filipe Coelho
 
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either
-version 2.1 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public
-License along with this library; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
-
+The WineASIO library code is licensed under LGPL v2.1, see COPYING.LIB for more details.
+The WineASIO settings UI code is licensed under GPL v2+, see COPYING.GUI for more details.
