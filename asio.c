@@ -1193,7 +1193,7 @@ HIDDEN ASIOError STDMETHODCALLTYPE DisposeBuffers(LPWINEASIO iface)
 DEFINE_THISCALL_WRAPPER(ControlPanel,4)
 HIDDEN ASIOError STDMETHODCALLTYPE ControlPanel(LPWINEASIO iface)
 {
-    char    *arg_list[] = { strdup ("qjackctl"), NULL };
+    char    *arg_list[] = { strdup ("wineasio-settings"), NULL };
 
     TRACE("iface: %p\n", iface);
 
