@@ -1,6 +1,8 @@
-# WineASIO - ASIO to JACK driver for WINE
+# WineASIO
 
-## INSTALLATION
+WineASIO is a ASIO driver for Wine, allowing to run Windows audio applications with low latency (as JACK clients).
+
+### INSTALLATION
 
 Do the following to build for 32-bit Wine.
 
@@ -22,36 +24,36 @@ make clean
 make 64
 ```
 
-To install (substitute with the path to the 64 bit wine libs for your distro).
+To install (substitute with the path to the 64-bit wine libs for your distro).
 
 ```
 sudo cp build64/wineasio.dll.so /usr/lib/wine/wineasio.dll.so 
 ```
 
 Finally the dll must be registered in the wineprefix.
-For both 32 and 64 bit wine do:
+For both 32 and 64-bit wine do:
 
 ```
 regsvr32 wineasio.dll
 
 ```
 
-On a 64 bit system with wine supporting both 32 and 64 applications,
-regsrv32 will register the 32-bit driver in a 64 bit prefix,
-use the following command to register the 64 bit driver in a 64 bit wineprefix:
+On a 64-bit system with wine supporting both 32 and 64-bit applications,
+regsrv32 will register the 32-bit driver in a 64-bit prefix,
+use the following command to register the 64-bit driver in a 64-bit wineprefix:
 
 ```
 wine64 regsvr32 wineaiso.dll
 ```
 
-regsvr32 registers the ASIO COM object in the default prefix "~/.wine".  
+regsvr32 registers the ASIO COM object in the default prefix `~/.wine`.  
 To use another prefix specify it explicitly, like:
 
 ```
 env WINEPREFIX=~/asioapp regsvr32 wineasio.dll
 ```
 
-## GENERAL INFORMATION
+### GENERAL INFORMATION
 
 ASIO apps get notified if the jack buffersize changes.
 
@@ -59,7 +61,7 @@ WineASIO can slave to the jack transport.
 
 WineASIO can change jack's buffersize if so desired. Must be enabled in the registry, see below.
 
-The configuration of WineASIO is done with Windows registry (HKEY_CURRENT_USER\Software\Wine\WineASIO).  
+The configuration of WineASIO is done with Windows registry (`HKEY_CURRENT_USER\Software\Wine\WineASIO`).  
 All these options can be overridden by environment variables.  
 There is also a GUI for changing these settings, which WineASIO will try to launch when the ASIO "panel" is clicked.
 
@@ -68,39 +70,39 @@ Th available options are:
 
 #### [Number of inputs] & [Number of outputs]
 These two settings control the number of jack ports that WineASIO will try to open.  
-Defaults are 16 in and 16 out.  Environment variables are WINEASIO_NUMBER_INPUTS and WINEASIO_NUMBER_OUTPUTS.
+Defaults are 16 in and 16 out.  Environment variables are `WINEASIO_NUMBER_INPUTS` and `WINEASIO_NUMBER_OUTPUTS`.
 
 #### [Autostart server]
 
 Defaults to off (0), setting it to 1 enables WineASIO to launch the jack server.  
 See the jack documentation for further details.  
-The environment variable is WINEASIO_AUTOSTART_SERVER, and it can be set to on or off.
+The environment variable is `WINEASIO_AUTOSTART_SERVER`, and it can be set to on or off.
 
 #### [Connect to hardware]
 Defaults to on (1), makes WineASIO try to connect the ASIO channels to the physical I/O ports on your hardware.  
 Setting it to 0 disables it.  
-The environment variable is WINEASIO_CONNECT_TO_HARDWARE, and it can be set to on or off.
+The environment variable is `WINEASIO_CONNECT_TO_HARDWARE`, and it can be set to on or off.
 
 #### [Fixed buffersize]
 Defaults to on (1) which means the buffer size is controlled by jack and WineASIO has no say in the matter.  
 When set to 0, an ASIO app will be able to change the jack buffer size when calling CreateBuffers().  
-The environment variable is WINEASIO_FIXED_BUFFERSIZE and it can be set to on or off.
+The environment variable is `WINEASIO_FIXED_BUFFERSIZE` and it can be set to on or off.
 
 #### [Preferred buffersize]
-Defaults to 1024, and is one of the sizes returned by GetBufferSize(), see the ASIO documentation for details.  
+Defaults to 1024, and is one of the sizes returned by `GetBufferSize()`, see the ASIO documentation for details.  
 Must be a power of 2.
 
 The other values returned by the driver are hardcoded in the source,  
-see ASIO_MINIMUM_BUFFERSIZE which is set at 16, and ASIO_MAXIMUM_BUFFERSIZE which is set to 8192.  
-The environment variable is WINEASIO_PREFERRED_BUFFERSIZE.
+see `ASIO_MINIMUM_BUFFERSIZE` which is set at 16, and `ASIO_MAXIMUM_BUFFERSIZE` which is set to 8192.  
+The environment variable is `WINEASIO_PREFERRED_BUFFERSIZE`.
 
 Be careful, if you set a size that isn't supported by the backend, the jack server will most likely shut down,
-might be a good idea to change ASIO_MINIMUM_BUFFERSIZE and ASIO_MAXIMUM_BUFFERSIZE to values you know work on your system before building.
+might be a good idea to change `ASIO_MINIMUM_BUFFERSIZE` and `ASIO_MAXIMUM_BUFFERSIZE` to values you know work on your system before building.
 
-In addition there is a WINEASIO_CLIENT_NAME environment variable,
+In addition there is a `WINEASIO_CLIENT_NAME` environment variable,
 that overrides the JACK client name derrived from the program name.
 
-## CHANGE LOG
+### CHANGE LOG
 
 #### 0.10.0
 * 08-FEB-2020: Fix code to work with latest Wine
@@ -163,7 +165,7 @@ that overrides the JACK client name derrived from the program name.
 #### 0.0.1
 * 31-AUG-2006: Initial version (RR)
 
-## LEGAL STUFF
+### LEGAL STUFF
 
 Copyright (C) 2006 Robert Reif  
 Portions copyright (C) 2007 Ralf Beck  
@@ -175,7 +177,7 @@ Portions copyright (C) 2010 Torben Hohn
 Portions copyright (C) 2010 Nedko Arnaudov  
 Portions copyright (C) 2011 Christian Schoenebeck  
 Portions copyright (C) 2013 Joakim Hernberg  
-Portions copyright (C) 2020 Filipe Coelho
+Portions copyright (C) 2020 Filipe Coelho  
 
 The WineASIO library code is licensed under LGPL v2.1, see COPYING.LIB for more details.  
-The WineASIO settings UI code is licensed under GPL v2+, see COPYING.GUI for more details.
+The WineASIO settings UI code is licensed under GPL v2+, see COPYING.GUI for more details.  
