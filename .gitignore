@@ -3,4 +3,5 @@
 *.so
 build32/
 build64/
+debian/
 __pycache__/
