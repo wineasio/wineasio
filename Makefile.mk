@@ -60,7 +60,6 @@ wineasio_dll_LDFLAGS  = -shared \
 			-m$(M) \
 			-mnocygwin \
 			$(wineasio_dll_MODULE:%=%.spec) \
-			-L/usr/lib/wine \
 			-L/usr/lib$(M)/wine \
 			-L/usr/lib/$(ARCH)-linux-gnu/wine \
 			-L/usr/lib/$(ARCH)-linux-gnu/wine-development \
