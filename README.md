@@ -15,7 +15,6 @@ enable the [KXStudio repositories](https://kx.studio/Repositories) and install W
 Do the following to build for 32-bit Wine.
 
 ```sh
-make clean
 make 32
 ```
 
@@ -28,7 +27,6 @@ sudo cp build32/wineasio.dll.so /usr/lib/i386-linux-gnu/wine/wineasio.dll.so
 Do the following to build for 64-bit Wine.
 
 ```sh
-make clean
 make 64
 ```
 
