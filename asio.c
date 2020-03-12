@@ -1105,12 +1105,16 @@ HIDDEN ASIOError STDMETHODCALLTYPE DisposeBuffers(LPWINEASIO iface)
 DEFINE_THISCALL_WRAPPER(ControlPanel,4)
 HIDDEN ASIOError STDMETHODCALLTYPE ControlPanel(LPWINEASIO iface)
 {
-    char    *arg_list[] = { strdup ("wineasio-settings"), NULL };
+    static char arg0[] = "wineasio-settings\0";
+    static char *arg_list[] = { arg0, NULL };
 
     TRACE("iface: %p\n", iface);
 
-    if (!fork())
-        execvp (arg_list[0], arg_list);
+    if (vfork() == 0)
+    {
+        execvp (arg0, arg_list);
+        _exit(1);
+    }
     return ASE_OK;
 }
 
