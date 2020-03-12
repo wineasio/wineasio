@@ -413,7 +413,7 @@ HIDDEN ASIOBool STDMETHODCALLTYPE Init(LPWINEASIO iface, void *sysRef)
 {
     IWineASIOImpl   *This = (IWineASIOImpl *)iface;
     jack_status_t   jack_status;
-    jack_options_t  jack_options = JackNullOption;
+    jack_options_t  jack_options = This->wineasio_autostart_server ? JackNullOption : JackNoStartServer;
     int             i;
 
     This->sys_ref = sysRef;
