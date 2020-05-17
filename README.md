@@ -72,7 +72,7 @@ All these options can be overridden by environment variables.
 There is also a GUI for changing these settings, which WineASIO will try to launch when the ASIO "panel" is clicked.
 
 The registry keys are automatically created with default values if they doesn't exist when the driver initializes.
-Th available options are:
+The available options are:
 
 #### [Number of inputs] & [Number of outputs]
 These two settings control the number of jack ports that WineASIO will try to open.  
@@ -106,7 +106,7 @@ Be careful, if you set a size that isn't supported by the backend, the jack serv
 might be a good idea to change `ASIO_MINIMUM_BUFFERSIZE` and `ASIO_MAXIMUM_BUFFERSIZE` to values you know work on your system before building.
 
 In addition there is a `WINEASIO_CLIENT_NAME` environment variable,
-that overrides the JACK client name derrived from the program name.
+that overrides the JACK client name derived from the program name.
 
 ### CHANGE LOG
 
