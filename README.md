@@ -110,10 +110,11 @@ that overrides the JACK client name derived from the program name.
 
 ### CHANGE LOG
 
-#### 0.10.0
+#### 1.0.0
+* 14-JUL-2020: Add packaging script
 * 12-MAR-2020: Fix control panel startup
 * 08-FEB-2020: Fix code to work with latest Wine
-* 08-FEB-2020: Add custom GUI for WineASIO settings, made by PyQt (taken off Cadence project code)
+* 08-FEB-2020: Add custom GUI for WineASIO settings, made in PyQt5 (taken from Cadence project code)
 
 #### 0.9.2
 * 28-OCT-2013: Add 64-bit support and some small fixes
