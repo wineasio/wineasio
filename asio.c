@@ -92,7 +92,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(asio);
 
 #define THISCALL(func) func
 #define THISCALL_NAME(func) __ASM_NAME(#func)
-#define __thiscall __cdecl
+#define __thiscall __stdcall
 #define DEFINE_THISCALL_WRAPPER(func,args) /* nothing */
 
 #endif /* __i386__ */
