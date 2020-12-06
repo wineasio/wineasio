@@ -1010,21 +1010,29 @@ HIDDEN ASIOError STDMETHODCALLTYPE CreateBuffers(LPWINEASIO iface, ASIOBufferInf
     /* initialize ASIOBufferInfo structures */
     buffer_info = bufferInfo;
     This->asio_active_inputs = This->asio_active_outputs = 0;
+
+    for (i = 0; i < This->wineasio_number_inputs; i++) {
+        This->input_channel[i].active = ASIOFalse;
+    }
+    for (i = 0; i < This->wineasio_number_outputs; i++) {
+        This->output_channel[i].active = ASIOFalse;
+    }
+
     for (i = 0; i < numChannels; i++, buffer_info++)
     {
         if (buffer_info->isInput)
         {
-            buffer_info->buffers[0] = &This->input_channel[This->asio_active_inputs].audio_buffer[0];
-            buffer_info->buffers[1] = &This->input_channel[This->asio_active_inputs].audio_buffer[This->asio_current_buffersize];
-            This->input_channel[This->asio_active_inputs].active = ASIOTrue;
+            buffer_info->buffers[0] = &This->input_channel[buffer_info->channelNum].audio_buffer[0];
+            buffer_info->buffers[1] = &This->input_channel[buffer_info->channelNum].audio_buffer[This->asio_current_buffersize];
+            This->input_channel[buffer_info->channelNum].active = ASIOTrue;
             This->asio_active_inputs++;
             /* TRACE("ASIO audio buffer for channel %i as input %li created\n", i, This->asio_active_inputs); */
         }
         else
         {
-            buffer_info->buffers[0] = &This->output_channel[This->asio_active_outputs].audio_buffer[0];
-            buffer_info->buffers[1] = &This->output_channel[This->asio_active_outputs].audio_buffer[This->asio_current_buffersize];
-            This->output_channel[This->asio_active_outputs].active = ASIOTrue;
+            buffer_info->buffers[0] = &This->output_channel[buffer_info->channelNum].audio_buffer[0];
+            buffer_info->buffers[1] = &This->output_channel[buffer_info->channelNum].audio_buffer[This->asio_current_buffersize];
+            This->output_channel[buffer_info->channelNum].active = ASIOTrue;
             This->asio_active_outputs++;
             /* TRACE("ASIO audio buffer for channel %i as output %li created\n", i, This->asio_active_outputs); */
         }
@@ -1262,7 +1270,7 @@ static inline int jack_process_callback(jack_nframes_t nframes, void *arg)
     }
 
     /* copy jack to asio buffers */
-    for (i = 0; i < This->asio_active_inputs; i++)
+    for (i = 0; i < This->wineasio_number_inputs; i++)
         if (This->input_channel[i].active == ASIOTrue)
             memcpy (&This->input_channel[i].audio_buffer[nframes * This->asio_buffer_index],
                     jack_port_get_buffer(This->input_channel[i].port, nframes),
@@ -1300,7 +1308,7 @@ static inline int jack_process_callback(jack_nframes_t nframes, void *arg)
     }
 
     /* copy asio to jack buffers */
-    for (i = 0; i < This->asio_active_outputs; i++)
+    for (i = 0; i < This->wineasio_number_outputs; i++)
         if (This->output_channel[i].active == ASIOTrue)
             memcpy(jack_port_get_buffer(This->output_channel[i].port, nframes),
                     &This->output_channel[i].audio_buffer[nframes * This->asio_buffer_index],
