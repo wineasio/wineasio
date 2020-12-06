@@ -155,8 +155,9 @@ class Ui_WineASIOSettings(object):
 
         self.cb_jack_fixed_bsize.setText(_tr(self.OBJECT_NAME, "Fixed buffersize"))
         self.cb_jack_fixed_bsize.setToolTip(_tr(self.OBJECT_NAME,
-                                                "When on, an asio app will be able to change the jack buffer size.\n"
-                                                "Default is off"))
+                                              "When on: ASIO applications will respect the current JACK buffer size\n"
+                                              "When off: ASIO applications can change the JACK buffer size"
+                                              "Default is on"))
 
         self.label_jack_buffer_size.setText(_tr(self.OBJECT_NAME, "Preferred buffersize:"))
 
