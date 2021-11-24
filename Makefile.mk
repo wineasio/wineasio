@@ -12,14 +12,17 @@ ifeq ($(M),)
 $(error incorrect use of Makefile, M var is missing)
 endif
 
+wineasio_dll_MODULE   = wineasio.dll
+
 PREFIX                = /usr
 SRCDIR                = .
-DLLS                  = wineasio.dll
+DLLS                  = $(wineasio_dll_MODULE) $(wineasio_dll_MODULE).so
 
 ### Tools
 
-CC = gcc
-WINECC = winegcc
+CC        = gcc
+WINEBUILD = winebuild
+WINECC    = winegcc
 
 ### Common settings
 
@@ -50,9 +53,8 @@ else
 CEXTRA               += -O2 -DNDEBUG -fvisibility=hidden
 endif
 
-### wineasio.dll sources and settings
+### wineasio.dll settings
 
-wineasio_dll_MODULE   = wineasio.dll
 wineasio_dll_C_SRCS   = asio.c \
 			main.c \
 			regsvr.c
@@ -72,12 +74,11 @@ wineasio_dll_LDFLAGS  = -shared \
 			-L/opt/wine-staging/lib/wine \
 			-L/opt/wine-staging/lib$(M) \
 			-L/opt/wine-staging/lib$(M)/wine
-wineasio_dll_DLL_PATH =
 wineasio_dll_DLLS     = odbc32 \
 			ole32 \
 			winmm
-wineasio_dll_LIBRARY_PATH=
-wineasio_dll_LIBRARIES= uuid
+wineasio_dll_LIBRARY_PATH =
+wineasio_dll_LIBRARIES = uuid
 
 wineasio_dll_OBJS     = $(wineasio_dll_C_SRCS:%.c=build$(M)/%.c.o)
 
@@ -88,7 +89,7 @@ C_SRCS                = $(wineasio_dll_C_SRCS)
 ### Generic targets
 
 all:
-build: rtaudio/include/asio.h $(DLLS:%=build$(M)/%.so)
+build: rtaudio/include/asio.h $(DLLS:%=build$(M)/%)
 
 ### Build rules
 
@@ -105,5 +106,9 @@ build$(M)/%.c.o: %.c
 ### Target specific build rules
 DEFLIB = $(LIBRARY_PATH) $(LIBRARIES) $(DLL_PATH)
 
+build$(M)/$(wineasio_dll_MODULE): $(wineasio_dll_OBJS)
+	$(WINEBUILD) --dll --fake-module -E $(wineasio_dll_MODULE).spec $^ > $@
+
 build$(M)/$(wineasio_dll_MODULE).so: $(wineasio_dll_OBJS)
-	$(WINECC) $(wineasio_dll_LDFLAGS) -o $@ $(wineasio_dll_OBJS) $(wineasio_dll_LIBRARY_PATH) $(DEFLIB) $(wineasio_dll_DLLS:%=-l%) $(wineasio_dll_LIBRARIES:%=-l%)
+	$(WINECC) $^ $(wineasio_dll_LDFLAGS) $(wineasio_dll_LIBRARY_PATH) $(DEFLIB) \
+		$(wineasio_dll_DLLS:%=-l%) $(wineasio_dll_LIBRARIES:%=-l%) -o $@

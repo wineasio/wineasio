@@ -18,22 +18,24 @@ Do the following to build for 32-bit Wine.
 make 32
 ```
 
-To install (substitute with the path to the 32-bit wine libs for your distro).
-
-```sh
-sudo cp build32/wineasio.dll.so /usr/lib/i386-linux-gnu/wine/wineasio.dll.so 
-```
-
 Do the following to build for 64-bit Wine.
 
 ```sh
 make 64
 ```
 
-To install (substitute with the path to the 64-bit wine libs for your distro).
+#### LEGACY WINE
+
+To install on 32bit wine <= 6.5 (substitute with the path to the 32-bit wine libs for your distro).
 
 ```sh
-sudo cp build64/wineasio.dll.so /usr/lib/x86_64-linux-gnu/wine/wineasio.dll.so 
+sudo cp build32/wineasio.dll.so /usr/lib/i386-linux-gnu/wine/wineasio.dll.so
+```
+
+To install on 64bit wine <= 6.5 (substitute with the path to the 64-bit wine libs for your distro).
+
+```sh
+sudo cp build64/wineasio.dll.so /usr/lib/x86_64-linux-gnu/wine/wineasio.dll.so
 ```
 
 Finally the dll must be registered in the wineprefix.
@@ -51,6 +53,40 @@ use the following command to register the 64-bit driver in a 64-bit wineprefix:
 ```sh
 wine64 regsvr32 wineasio.dll
 ```
+
+#### WINE > 6.5
+
+To install on 32bit wine > 6.5 (substitute with the path to the 32-bit wine libs for your distro).
+
+```sh
+sudo cp build32/wineasio.dll /usr/lib/i386-linux-gnu/wine/i386-windows/wineasio.dll
+sudo cp build32/wineasio.dll.so /usr/lib/i386-linux-gnu/wine/i386-unix/wineasio.dll.so
+```
+
+To install on 64bit wine > 6.5 (substitute with the path to the 64-bit wine libs for your distro).
+
+```sh
+sudo cp build64/wineasio.dll /usr/lib/x86_64-linux-gnu/wine/x86_64-windows/wineasio.dll
+sudo cp build64/wineasio.dll.so /usr/lib/x86_64-linux-gnu/wine/x86_64-unix/wineasio.dll.so
+```
+
+Finally the dll must be registered in the wineprefix.
+For both 32 and 64-bit wine do:
+
+```sh
+regsvr32 wineasio.dll
+
+```
+
+On a 64-bit system with wine supporting both 32 and 64-bit applications,
+regsrv32 will register the 32-bit driver in a 64-bit prefix,
+use the following command to register the 64-bit driver in a 64-bit wineprefix:
+
+```sh
+wine64 regsvr32 wineasio.dll
+```
+
+#### CUSTOM WINEPREFIX
 
 regsvr32 registers the ASIO COM object in the default prefix `~/.wine`.  
 To use another prefix specify it explicitly, like:
@@ -109,6 +145,9 @@ In addition there is a `WINEASIO_CLIENT_NAME` environment variable,
 that overrides the JACK client name derived from the program name.
 
 ### CHANGE LOG
+
+#### 1.1.0
+* 24-NOV-2021: Fix compatibility with Wine > 6.5
 
 #### 1.0.0
 * 14-JUL-2020: Add packaging script
