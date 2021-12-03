@@ -29,7 +29,9 @@
 #include "winreg.h"
 #include "objbase.h"
 
+#ifdef DEBUG
 #include "wine/debug.h"
+#endif
 
 /* WINE_DEFAULT_DEBUG_CHANNEL(asio); */
 
