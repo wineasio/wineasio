@@ -71,7 +71,8 @@ sudo cp build64/wineasio.dll.so /usr/lib/x86_64-linux-gnu/wine/x86_64-unix/winea
 ```
 
 Finally the dll must be registered in the wineprefix.
-For both 32 and 64-bit wine do: (substitute with the path to the 32-bit wine libs for your distro)
+For both 32 and 64-bit wine do:  
+(substitute with the path to the 32-bit wine libs for your distro)
 
 ```sh
 regsvr32 /usr/lib/i386-linux-gnu/wine/i386-windows/wineasio.dll
@@ -80,7 +81,8 @@ regsvr32 /usr/lib/i386-linux-gnu/wine/i386-windows/wineasio.dll
 
 On a 64-bit system with wine supporting both 32 and 64-bit applications,
 regsrv32 will register the 32-bit driver in a 64-bit prefix,
-use the following command to register the 64-bit driver in a 64-bit wineprefix: (substitute with the path to the 64-bit wine libs for your distro)
+use the following command to register the 64-bit driver in a 64-bit wineprefix:  
+(substitute with the path to the 64-bit wine libs for your distro)
 
 ```sh
 wine64 regsvr32 /usr/lib/x86_64-linux-gnu/wine/x86_64-windows/wineasio.dll
