@@ -107,7 +107,7 @@ build$(M)/%.c.o: %.c
 DEFLIB = $(LIBRARY_PATH) $(LIBRARIES) $(DLL_PATH)
 
 build$(M)/$(wineasio_dll_MODULE): $(wineasio_dll_OBJS)
-	$(WINEBUILD) --dll --fake-module -E $(wineasio_dll_MODULE).spec $^ -o $@
+	$(WINEBUILD) -m$(M) --dll --fake-module -E $(wineasio_dll_MODULE).spec $^ -o $@
 
 build$(M)/$(wineasio_dll_MODULE).so: $(wineasio_dll_OBJS)
 	$(WINECC) $^ $(wineasio_dll_LDFLAGS) $(wineasio_dll_LIBRARY_PATH) $(DEFLIB) \
