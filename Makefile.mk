@@ -36,6 +36,10 @@ INCLUDE_PATH         += -I$(PREFIX)/include/wine
 INCLUDE_PATH         += -I$(PREFIX)/include/wine/windows
 INCLUDE_PATH         += -I$(PREFIX)/include/wine-development
 INCLUDE_PATH         += -I$(PREFIX)/include/wine-development/wine/windows
+INCLUDE_PATH         += -I/opt/wine-stable/include
+INCLUDE_PATH         += -I/opt/wine-stable/include/wine/windows
+INCLUDE_PATH         += -I/opt/wine-staging/include
+INCLUDE_PATH         += -I/opt/wine-staging/include/wine/windows
 LIBRARIES             = $(shell pkg-config --libs jack)
 
 # 64bit build needs an extra flag
