@@ -36,8 +36,6 @@ INCLUDE_PATH         += -I$(PREFIX)/include/wine
 INCLUDE_PATH         += -I$(PREFIX)/include/wine/windows
 INCLUDE_PATH         += -I$(PREFIX)/include/wine-development
 INCLUDE_PATH         += -I$(PREFIX)/include/wine-development/wine/windows
-DLL_PATH              =
-LIBRARY_PATH          =
 LIBRARIES             = $(shell pkg-config --libs jack)
 
 # 64bit build needs an extra flag
@@ -48,7 +46,6 @@ endif
 # Debug or Release
 ifeq ($(DEBUG),true)
 CEXTRA               += -O0 -DDEBUG -g -D__WINESRC__
-LIBRARIES            +=
 else
 CEXTRA               += -O2 -DNDEBUG -fvisibility=hidden
 endif
@@ -77,7 +74,6 @@ wineasio_dll_LDFLAGS  = -shared \
 wineasio_dll_DLLS     = odbc32 \
 			ole32 \
 			winmm
-wineasio_dll_LIBRARY_PATH =
 wineasio_dll_LIBRARIES = uuid
 
 wineasio_dll_OBJS     = $(wineasio_dll_C_SRCS:%.c=build$(M)/%.c.o)
@@ -97,18 +93,15 @@ build: rtaudio/include/asio.h $(DLLS:%=build$(M)/%)
 
 # Implicit rules
 
-DEFINCL = $(INCLUDE_PATH) $(DEFINES) $(OPTIONS)
-
 build$(M)/%.c.o: %.c
 	@$(shell mkdir -p build$(M))
-	$(CC) -c $(DEFINCL) $(CFLAGS) $(CEXTRA) -o $@ $<
+	$(CC) -c $(INCLUDE_PATH) $(CFLAGS) $(CEXTRA) -o $@ $<
 
 ### Target specific build rules
-DEFLIB = $(LIBRARY_PATH) $(LIBRARIES) $(DLL_PATH)
 
 build$(M)/$(wineasio_dll_MODULE): $(wineasio_dll_OBJS)
 	$(WINEBUILD) -m$(M) --dll --fake-module -E $(wineasio_dll_MODULE).spec $^ -o $@
 
 build$(M)/$(wineasio_dll_MODULE).so: $(wineasio_dll_OBJS)
-	$(WINECC) $^ $(wineasio_dll_LDFLAGS) $(wineasio_dll_LIBRARY_PATH) $(DEFLIB) \
+	$(WINECC) $^ $(wineasio_dll_LDFLAGS) $(LIBRARIES) \
 		$(wineasio_dll_DLLS:%=-l%) $(wineasio_dll_LIBRARIES:%=-l%) -o $@
