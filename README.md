@@ -149,6 +149,7 @@ that overrides the JACK client name derived from the program name.
 ### CHANGE LOG
 
 #### 1.1.0
+* 18-FEB-2022: Various bug fixes (falkTX)
 * 24-NOV-2021: Fix compatibility with Wine > 6.5
 
 #### 1.0.0
