@@ -645,7 +645,7 @@ HIDDEN ASIOError STDMETHODCALLTYPE GetChannels (LPWINEASIO iface, LONG *numInput
 {
     IWineASIOImpl   *This = (IWineASIOImpl*)iface;
 
-    if (!numInputChannels && !numOutputChannels)
+    if (!numInputChannels || !numOutputChannels)
         return ASE_InvalidParameter;
 
     *numInputChannels = This->wineasio_number_inputs;
@@ -665,8 +665,8 @@ HIDDEN ASIOError STDMETHODCALLTYPE GetLatencies(LPWINEASIO iface, LONG *inputLat
 {
     IWineASIOImpl           *This = (IWineASIOImpl*)iface;
     jack_latency_range_t    range;
-    
-    if (!inputLatency && !outputLatency)
+
+    if (!inputLatency || !outputLatency)
         return ASE_InvalidParameter;
 
     if (This->asio_driver_state == Loaded)
@@ -695,7 +695,7 @@ HIDDEN ASIOError STDMETHODCALLTYPE GetBufferSize(LPWINEASIO iface, LONG *minSize
 
     TRACE("iface: %p, minSize: %p, maxSize: %p, preferredSize: %p, granularity: %p\n", iface, minSize, maxSize, preferredSize, granularity);
 
-    if (!minSize && !maxSize && !preferredSize && !granularity)
+    if (!minSize || !maxSize || !preferredSize || !granularity)
         return ASE_InvalidParameter;
 
     if (This->wineasio_fixed_buffersize)
@@ -788,7 +788,7 @@ HIDDEN ASIOError STDMETHODCALLTYPE GetClockSources(LPWINEASIO iface, ASIOClockSo
 {
     TRACE("iface: %p, clocks: %p, numSources: %p\n", iface, clocks, numSources);
 
-    if (!clocks && !numSources)
+    if (!clocks || !numSources)
         return ASE_InvalidParameter;
 
     clocks->index = 0;
@@ -835,7 +835,7 @@ HIDDEN ASIOError STDMETHODCALLTYPE GetSamplePosition(LPWINEASIO iface, ASIOSampl
 
     TRACE("iface: %p, sPos: %p, tStamp: %p\n", iface, sPos, tStamp);
 
-    if (!sPos && !tStamp)
+    if (!sPos || !tStamp)
         return ASE_InvalidParameter;
 
     tStamp->lo = This->asio_time_stamp.lo;
@@ -903,8 +903,8 @@ HIDDEN ASIOError STDMETHODCALLTYPE CreateBuffers(LPWINEASIO iface, ASIOBufferInf
     if (This->asio_driver_state != Initialized)
         return ASE_NotPresent;
 
-    if (!bufferInfo && !asioCallbacks)
-            return ASE_InvalidMode;
+    if (!bufferInfo || !asioCallbacks)
+        return ASE_InvalidMode;
 
     /* Check for invalid channel numbers */
     for (i = j = k = 0; i < numChannels; i++, buffer_info++)
