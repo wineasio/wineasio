@@ -12,7 +12,7 @@ ifeq ($(M),)
 $(error incorrect use of Makefile, M var is missing)
 endif
 
-wineasio_dll_MODULE   = wineasio.dll
+wineasio_dll_MODULE   = wineasio$(M).dll
 
 PREFIX                = /usr
 SRCDIR                = .
@@ -62,7 +62,7 @@ wineasio_dll_C_SRCS   = asio.c \
 wineasio_dll_LDFLAGS  = -shared \
 			-m$(M) \
 			-mnocygwin \
-			$(wineasio_dll_MODULE:%=%.spec) \
+			wineasio.dll.spec \
 			-L/usr/lib$(M)/wine \
 			-L/usr/lib/wine \
 			-L/usr/lib/$(ARCH)-linux-gnu/wine \
@@ -104,7 +104,7 @@ build$(M)/%.c.o: %.c
 ### Target specific build rules
 
 build$(M)/$(wineasio_dll_MODULE): $(wineasio_dll_OBJS)
-	$(WINEBUILD) -m$(M) --dll --fake-module -E $(wineasio_dll_MODULE).spec $^ -o $@
+	$(WINEBUILD) -m$(M) --dll --fake-module -E wineasio.dll.spec $^ -o $@
 
 build$(M)/$(wineasio_dll_MODULE).so: $(wineasio_dll_OBJS)
 	$(WINECC) $^ $(wineasio_dll_LDFLAGS) $(LIBRARIES) \

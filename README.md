@@ -10,7 +10,7 @@ You can, for example, use with FLStudio under GNU/Linux systems (together with J
 For best results with Debian-based distributions,
 enable the [KXStudio repositories](https://kx.studio/Repositories) and install WineASIO from there.
 
-### INSTALLATION
+### BUILDING
 
 Do the following to build for 32-bit Wine.
 
@@ -24,77 +24,47 @@ Do the following to build for 64-bit Wine.
 make 64
 ```
 
-#### LEGACY WINE
+### INSTALLING
 
-To install on 32bit wine <= 6.5 (substitute with the path to the 32-bit wine libs for your distro).
-
-```sh
-sudo cp build32/wineasio.dll.so /usr/lib/i386-linux-gnu/wine/wineasio.dll.so
-```
-
-To install on 64bit wine <= 6.5 (substitute with the path to the 64-bit wine libs for your distro).
+To install 32-bit WineASIO (substitute with the path to the 32-bit wine libs for your distro).
 
 ```sh
-sudo cp build64/wineasio.dll.so /usr/lib/x86_64-linux-gnu/wine/wineasio.dll.so
+sudo cp build32/wineasio32.dll /usr/lib/i386-linux-gnu/wine/i386-windows/
+sudo cp build32/wineasio32.dll.so /usr/lib/i386-linux-gnu/wine/i386-unix/
 ```
 
-Finally the dll must be registered in the wineprefix.
-For both 32 and 64-bit wine do:
+To install 64bit WineASIO (substitute with the path to the 64-bit wine libs for your distro).
 
 ```sh
-regsvr32 wineasio.dll
-
+sudo cp build64/wineasio64.dll /usr/lib/x86_64-linux-gnu/wine/x86_64-windows/wineasio.dll
+sudo cp build64/wineasio64.dll.so /usr/lib/x86_64-linux-gnu/wine/x86_64-unix/wineasio.dll.so
 ```
 
-On a 64-bit system with wine supporting both 32 and 64-bit applications,
-regsrv32 will register the 32-bit driver in a 64-bit prefix,
-use the following command to register the 64-bit driver in a 64-bit wineprefix:
+#### EXTRAS
+
+For user convenience a `wineasio-register` script is included in this repo, if you are packaging WineASIO consider installing it as part of WineASIO.
+
+Additionally a control panel GUI is provided in this repository's `gui` subdir, which requires PyQt5 to build and run.  
+The WineASIO driver will use this GUI as the ASIO control panel.
+
+### REGISTERING
+
+After building and installing WineASIO, we still need to register it on each Wine prefix.  
+For your convenience a script is provided on this repository, so you can simply run:
 
 ```sh
-wine64 regsvr32 wineasio.dll
+wineasio-register
 ```
 
-#### WINE > 6.5
-
-To install on 32bit wine > 6.5 (substitute with the path to the 32-bit wine libs for your distro).
-
-```sh
-sudo cp build32/wineasio.dll /usr/lib/i386-linux-gnu/wine/i386-windows/wineasio.dll
-sudo cp build32/wineasio.dll.so /usr/lib/i386-linux-gnu/wine/i386-unix/wineasio.dll.so
-```
-
-To install on 64bit wine > 6.5 (substitute with the path to the 64-bit wine libs for your distro).
-
-```sh
-sudo cp build64/wineasio.dll /usr/lib/x86_64-linux-gnu/wine/x86_64-windows/wineasio.dll
-sudo cp build64/wineasio.dll.so /usr/lib/x86_64-linux-gnu/wine/x86_64-unix/wineasio.dll.so
-```
-
-Finally the dll must be registered in the wineprefix.
-For both 32 and 64-bit wine do:  
-(substitute with the path to the 32-bit wine libs for your distro)
-
-```sh
-regsvr32 /usr/lib/i386-linux-gnu/wine/i386-windows/wineasio.dll
-
-```
-
-On a 64-bit system with wine supporting both 32 and 64-bit applications,
-regsrv32 will register the 32-bit driver in a 64-bit prefix,
-use the following command to register the 64-bit driver in a 64-bit wineprefix:  
-(substitute with the path to the 64-bit wine libs for your distro)
-
-```sh
-wine64 regsvr32 /usr/lib/x86_64-linux-gnu/wine/x86_64-windows/wineasio.dll
-```
+to activate WineASIO for the current Wine prefix.
 
 #### CUSTOM WINEPREFIX
 
-regsvr32 registers the ASIO COM object in the default prefix `~/.wine`.  
-To use another prefix specify it explicitly, like:
+The `wineasio-register` script will register the WineASIO driver in the default Wine prefix `~/.wine`.  
+You can specify another prefix like so:
 
 ```sh
-env WINEPREFIX=~/asioapp regsvr32 wineasio.dll
+env WINEPREFIX=~/asioapp wineasio-register
 ```
 
 ### GENERAL INFORMATION
@@ -147,6 +117,10 @@ In addition there is a `WINEASIO_CLIENT_NAME` environment variable,
 that overrides the JACK client name derived from the program name.
 
 ### CHANGE LOG
+
+#### 1.2.0
+* 29-SEP-2023: Fix compatibility with Wine > 8
+* 29-SEP-2023: Add wineasio-register script for simplifying driver registration
 
 #### 1.1.0
 * 18-FEB-2022: Various bug fixes (falkTX)

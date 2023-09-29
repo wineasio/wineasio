@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# exit if any command fails
+set -e
+
+# read WINEPREFIX from environment, with fallback if unset
+WINEPREFIX=${WINEPREFIX:=~/.wine}
+
+# make sure the WINEPREFIX directory exists
+if [ ! -d "${WINEPREFIX}" ]; then
+    wineboot -u
+fi
+
+# define possible locations for wineasio DLLs
+u32=(
+"/opt/wine-devel/lib/wine/i386-unix/wineasio32.dll.so"
+"/opt/wine-stable/lib/wine/i386-unix/wineasio32.dll.so"
+"/opt/wine-staging/lib/wine/i386-unix/wineasio32.dll.so"
+"/usr/lib/wine/i386-unix/wineasio32.dll.so"
+"/usr/lib32/wine/i386-unix/wineasio32.dll.so"
+"/usr/lib/i386-linux-gnu/wine/i386-unix/wineasio32.dll.so"
+)
+
+u64=(
+"/opt/wine-devel/lib64/wine/x86_64-unix/wineasio64.dll.so"
+"/opt/wine-stable/lib64/wine/x86_64-unix/wineasio64.dll.so"
+"/opt/wine-staging/lib64/wine/x86_64-unix/wineasio64.dll.so"
+"/usr/lib/wine/x86_64-unix/wineasio64.dll.so"
+"/usr/lib64/wine/x86_64-unix/wineasio64.dll.so"
+"/usr/lib/x86_64-linux-gnu/wine/x86_64-unix/wineasio64.dll.so"
+)
+
+# try to register 32bit DLL
+for u in ${u32[@]}; do
+    w=$(echo ${u} | sed -e 's|/i386-unix/wineasio32.dll.so|/i386-windows/wineasio32.dll|g')
+    if [ -e "${u}" ] && [ -e "${w}" ]; then
+        cp -v "${w}" "${WINEPREFIX}/drive_c/windows/system32"
+        regsvr32 "${u}"
+        break
+    fi
+done
+
+# only continue past this point if wine64 command is available and prefix supports 64bit
+if ! command -v wine64 > /dev/null || [ ! -d "${WINEPREFIX}/drive_c/windows/syswow64" ]; then
+    exit 0
+fi
+
+# try to register 64bit DLL
+for u in ${u64[@]}; do
+    w=$(echo ${u} | sed -e 's|/x86_64-unix/wineasio64.dll.so|/x86_64-windows/wineasio64.dll|g')
+    if [ -e "${u}" ] && [ -e "${w}" ]; then
+        cp -v "${w}" "${WINEPREFIX}/drive_c/windows/system32"
+        wine64 regsvr32 "${u}"
+        break
+    fi
+done

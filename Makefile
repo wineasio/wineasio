@@ -4,7 +4,9 @@
 # Created by falkTX
 #
 
-VERSION = 1.1.0
+VERSION = 1.2.0
+
+PREFIX ?= /usr
 
 all:
 	@echo "error: you must pass '32' or '64' as an argument to this Makefile in order to build WineASIO"
