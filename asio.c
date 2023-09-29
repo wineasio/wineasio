@@ -169,11 +169,11 @@ typedef struct IWineASIOImpl
     LONG                        asio_version;
 
     /* WineASIO configuration options */
-    LONG                        wineasio_number_inputs;
-    LONG                        wineasio_number_outputs;
+    int                         wineasio_number_inputs;
+    int                         wineasio_number_outputs;
     BOOL                        wineasio_autostart_server;
     BOOL                        wineasio_connect_to_hardware;
-    LONG                        wineasio_fixed_buffersize;
+    BOOL                        wineasio_fixed_buffersize;
     LONG                        wineasio_preferred_buffersize;
 
     /* JACK stuff */
@@ -361,7 +361,6 @@ HIDDEN ULONG STDMETHODCALLTYPE Release(LPWINEASIO iface)
 {
     IWineASIOImpl   *This = (IWineASIOImpl *)iface;
     ULONG            ref = InterlockedDecrement(&This->ref);
-    int             i;
 
     TRACE("iface: %p, ref count is %d\n", iface, ref);
 
@@ -373,13 +372,13 @@ HIDDEN ULONG STDMETHODCALLTYPE Release(LPWINEASIO iface)
     if (This->asio_driver_state == Initialized)
     {
         /* just for good measure we deinitialize IOChannel structures and unregister JACK ports */
-        for (i = 0; i < This->wineasio_number_inputs; i++)
+        for (int i = 0; i < This->wineasio_number_inputs; i++)
         {
             jack_port_unregister (This->jack_client, This->input_channel[i].port);
             This->input_channel[i].active = ASIOFalse;
             This->input_channel[i].port = NULL;
         }
-        for (i = 0; i < This->wineasio_number_outputs; i++)
+        for (int i = 0; i < This->wineasio_number_outputs; i++)
         {
             jack_port_unregister (This->jack_client, This->output_channel[i].port);
             This->output_channel[i].active = ASIOFalse;
@@ -898,7 +897,7 @@ HIDDEN ASIOError STDMETHODCALLTYPE CreateBuffers(LPWINEASIO iface, ASIOBufferInf
     ASIOBufferInfo  *buffer_info = bufferInfo;
     int             i, j, k;
 
-    TRACE("iface: %p, bufferInfo: %p, numChannels: %i, bufferSize: %i, asioCallbacks: %p\n", iface, bufferInfo, numChannels, bufferSize, asioCallbacks);
+    TRACE("iface: %p, bufferInfo: %p, numChannels: %i, bufferSize: %i, asioCallbacks: %p\n", iface, bufferInfo, (int)numChannels, (int)bufferSize, asioCallbacks);
 
     if (This->asio_driver_state != Initialized)
         return ASE_NotPresent;
@@ -932,7 +931,7 @@ HIDDEN ASIOError STDMETHODCALLTYPE CreateBuffers(LPWINEASIO iface, ASIOBufferInf
     {
         if (This->asio_current_buffersize != bufferSize)
             return ASE_InvalidMode;
-        TRACE("Buffersize fixed at %i\n", This->asio_current_buffersize);
+        TRACE("Buffersize fixed at %i\n", (int)This->asio_current_buffersize);
     }
     else
     { /* fail if not a power of two and if out of range */
@@ -940,24 +939,24 @@ HIDDEN ASIOError STDMETHODCALLTYPE CreateBuffers(LPWINEASIO iface, ASIOBufferInf
                 && bufferSize >= ASIO_MINIMUM_BUFFERSIZE
                 && bufferSize <= ASIO_MAXIMUM_BUFFERSIZE))
         {
-            WARN("Invalid buffersize %i requested\n", bufferSize);
+            WARN("Invalid buffersize %i requested\n", (int)bufferSize);
             return ASE_InvalidMode;
         }
         else
         {
             if (This->asio_current_buffersize == bufferSize)
             {
-                TRACE("Buffer size already set to %i\n", This->asio_current_buffersize);
+                TRACE("Buffer size already set to %i\n", (int)This->asio_current_buffersize);
             }
             else
             {
                 This->asio_current_buffersize = bufferSize;
                 if (jack_set_buffer_size(This->jack_client, This->asio_current_buffersize))
                 {
-                    WARN("JACK is unable to set buffersize to %i\n", This->asio_current_buffersize);
+                    WARN("JACK is unable to set buffersize to %i\n", (int)This->asio_current_buffersize);
                     return ASE_HWMalfunction;
                 }
-                TRACE("Buffer size changed to %i\n", This->asio_current_buffersize);
+                TRACE("Buffer size changed to %i\n", (int)This->asio_current_buffersize);
             }
         }
     }
