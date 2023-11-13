@@ -23,6 +23,7 @@
 #include "winuser.h"
 #include "winreg.h"
 #include "objbase.h"
+#include "unknwn.h"
 
 #ifdef DEBUG
 #include "wine/debug.h"
