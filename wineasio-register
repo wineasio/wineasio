@@ -34,7 +34,11 @@ u64=(
 for u in ${u32[@]}; do
     w=$(echo ${u} | sed -e 's|/i386-unix/wineasio32.dll.so|/i386-windows/wineasio32.dll|g')
     if [ -e "${u}" ] && [ -e "${w}" ]; then
-        cp -v "${w}" "${WINEPREFIX}/drive_c/windows/system32"
+        if command -v wine64 > /dev/null && [ -d "${WINEPREFIX}/drive_c/windows/syswow64" ]; then
+            cp -v "${w}" "${WINEPREFIX}/drive_c/windows/syswow64"
+        else
+            cp -v "${w}" "${WINEPREFIX}/drive_c/windows/system32"
+        fi
         regsvr32 "${u}"
         break
     fi
