@@ -1,0 +1,8 @@
+LIBRARY			mod-app
+DESCRIPTION		'MOD App ASIO Driver'
+EXPORTS
+				DllMain
+				DllGetClassObject
+				DllCanUnloadNow
+				DllRegisterServer
+				DllUnregisterServer
