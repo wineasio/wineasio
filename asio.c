@@ -1323,7 +1323,7 @@ static VOID configure_driver(IWineASIOImpl *This)
 
     This->wineasio_number_inputs = 2;
     This->wineasio_number_outputs = 2;
-    This->wineasio_fixed_buffersize = FALSE;
+    This->wineasio_fixed_buffersize = TRUE;
 
     This->jack_client = NULL;
     This->jack_client_name[0] = 0;
