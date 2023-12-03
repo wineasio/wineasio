@@ -1,7 +1,7 @@
 *~
+*.dll
 *.o
 *.so
-build32/
-build64/
+build/
 debian/
 __pycache__/
