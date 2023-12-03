@@ -227,9 +227,9 @@ static DWORD WINAPI jack_thread_creator_helper(LPVOID arg);
 static int          jack_thread_creator(pthread_t* thread_id, const pthread_attr_t* attr, void *(*function)(void*), void* arg);
 #endif
 
-/* {48D0C522-BFCC-45cc-8B84-17F25F33E6E8} */
+/* {48D0C522-BFCC-45cc-8B84-17F25F33E6E9} */
 static GUID const CLSID_WineASIO = {
-0x48d0c522, 0xbfcc, 0x45cc, { 0x8b, 0x84, 0x17, 0xf2, 0x5f, 0x33, 0xe6, 0xe8 } };
+0x48d0c522, 0xbfcc, 0x45cc, { 0x8b, 0x84, 0x17, 0xf2, 0x5f, 0x33, 0xe6, 0xe9 } };
 
 static const IWineASIOVtbl WineASIO_Vtbl =
 {
@@ -389,9 +389,9 @@ ASIOBool STDMETHODCALLTYPE Init(LPWINEASIO iface, void *sysRef)
     // mlockall(MCL_FUTURE);
 
     // TODO allow any client name on mod-ui side
-    if (!(This->jack_client = jackbridge_client_open("mod-slave", jack_options, &jack_status, "mod-app")))
+    if (!(This->jack_client = jackbridge_client_open("mod-external", jack_options, &jack_status, "mod-app")))
     {
-        WARN("Unable to open a JACK client as: %s\n", "mod-slave");
+        WARN("Unable to open a JACK client as: %s\n", "mod-external");
         return ASIOFalse;
     }
     TRACE("JACK client opened as: '%s'\n", jackbridge_get_client_name(This->jack_client));
@@ -415,7 +415,7 @@ ASIOBool STDMETHODCALLTYPE Init(LPWINEASIO iface, void *sysRef)
     {
         This->input_channel[i].active = ASIOFalse;
         This->input_channel[i].port = NULL;
-        snprintf(This->input_channel[i].port_name, ASIO_MAX_NAME_LENGTH, "audio_to_slave_%i", i + 1);
+        snprintf(This->input_channel[i].port_name, ASIO_MAX_NAME_LENGTH, "audio_to_external_%i", i + 1);
         This->input_channel[i].port = jackbridge_port_register(This->jack_client,
             This->input_channel[i].port_name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, i);
         /* TRACE("IOChannel structure initialized for input %d: '%s'\n", i, This->input_channel[i].port_name); */
@@ -424,7 +424,7 @@ ASIOBool STDMETHODCALLTYPE Init(LPWINEASIO iface, void *sysRef)
     {
         This->output_channel[i].active = ASIOFalse;
         This->output_channel[i].port = NULL;
-        snprintf(This->output_channel[i].port_name, ASIO_MAX_NAME_LENGTH, "audio_from_slave_%i", i + 1);
+        snprintf(This->output_channel[i].port_name, ASIO_MAX_NAME_LENGTH, "audio_from_external_%i", i + 1);
         This->output_channel[i].port = jackbridge_port_register(This->jack_client,
             This->output_channel[i].port_name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput|JackPortIsPhysical, i);
         /* TRACE("IOChannel structure initialized for output %d: '%s'\n", i, This->output_channel[i].port_name); */
@@ -1068,21 +1068,17 @@ ASIOError STDMETHODCALLTYPE DisposeBuffers(LPWINEASIO iface)
 DEFINE_THISCALL_WRAPPER(ControlPanel,4)
 ASIOError STDMETHODCALLTYPE ControlPanel(LPWINEASIO iface)
 {
-#if 0
-    static char arg0[] = "wineasio-settings\0";
-    static char *arg_list[] = { arg0, NULL };
-
     TRACE("iface: %p\n", iface);
 
-    if (vfork() == 0)
+    HANDLE openEvent = OpenEventA(EVENT_MODIFY_STATE, false, "Global\\mod-app-open");
+
+    if (openEvent)
     {
-        execvp (arg0, arg_list);
-        _exit(1);
+        SetEvent(openEvent);
+        CloseHandle(openEvent);
     }
+
     return ASE_OK;
-#else
-    return ASE_NotPresent;
-#endif
 }
 
 /*
