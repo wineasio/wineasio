@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
-# Makefile for MOD App ASIO #
-# ------------------------- #
+# Makefile for MOD Desktop App ASIO #
+# --------------------------------- #
 # Created by falkTX
 #
 
@@ -35,7 +35,7 @@ OBJS = $(SRCS:%.c=build/%.c.o)
 
 ### Generic targets
 
-all: mod-app-asio.dll
+all: mod-desktop-app-asio.dll
 
 ### Build rules
 
@@ -49,5 +49,5 @@ build/%.c.o: %.c
 
 ### Target specific build rules
 
-mod-app-asio.dll: $(OBJS)
-	$(CC) $^ $(CFLAGS) $(LDFLAGS) -shared mod-app-asio.dll.def -lodbc32 -lole32 -luuid -lwinmm -o $@
+mod-desktop-app-asio.dll: $(OBJS)
+	$(CC) $^ $(CFLAGS) $(LDFLAGS) -shared mod-desktop-app-asio.dll.def -lodbc32 -lole32 -luuid -lwinmm -o $@
