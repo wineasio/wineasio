@@ -1,5 +1,5 @@
-LIBRARY			mod-desktop-app
-DESCRIPTION		'MOD Desktop App ASIO Driver'
+LIBRARY			mod-desktop-asio
+DESCRIPTION		'MOD Desktop ASIO Driver'
 EXPORTS
 				DllMain
 				DllGetClassObject

@@ -305,25 +305,25 @@ static void jackbridge_init(JackBridge* const bridge)
     WCHAR path[MAX_PATH];
     if (SHGetFolderPathW(NULL, CSIDL_PROGRAM_FILES, NULL, SHGFP_TYPE_CURRENT, path) != S_OK)
     {
-        fprintf(stderr, "Failed to load MOD Desktop App JACK DLL\n");
+        fprintf(stderr, "Failed to load MOD Desktop JACK DLL\n");
         return;
     }
 
     WCHAR *path2 = path;
     while (*path2++) {}
     --path2;
-    memcpy(path2,  L"\\MOD Desktop App\\libjack64.dll", sizeof(WCHAR)*23);
+    memcpy(path2,  L"\\MOD Desktop\\libjack64.dll", sizeof(WCHAR)*23);
 
     const HANDLE lib = LoadLibraryW(path);
 
     if (lib == NULL)
     {
-        fwprintf(stderr, L"Failed to load MOD Desktop App JACK '%ls'\n", path);
+        fwprintf(stderr, L"Failed to load MOD Desktop JACK '%ls'\n", path);
         return;
     }
     else
     {
-        fwprintf(stdout, L"MOD Desktop App JACK '%ls' loaded successfully!\n", path);
+        fwprintf(stdout, L"MOD Desktop JACK '%ls' loaded successfully!\n", path);
     }
 
     #define JOIN(a, b) a ## b

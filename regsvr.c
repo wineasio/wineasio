@@ -500,7 +500,7 @@ static GUID const CLSID_WineASIO = {
 0x48d0c522, 0xbfcc, 0x45cc, { 0x8b, 0x84, 0x17, 0xf2, 0x5f, 0x33, 0xe6, 0xe9 } };
 
 static struct regsvr_coclass const coclass_list[] = {
-    { &CLSID_WineASIO, "MOD Desktop App ASIO Object", NULL, "mod-desktop-app-asio.dll", "Apartment" },
+    { &CLSID_WineASIO, "MOD Desktop ASIO Object", NULL, "mod-desktop-asio.dll", "Apartment" },
     { NULL }			/* list terminator */
 };
 
@@ -517,11 +517,11 @@ static struct regsvr_interface const interface_list[] = {
  */
 static HRESULT register_driver(void)
 {
-    LPCSTR asio_key = "Software\\ASIO\\MOD Desktop App";
+    LPCSTR asio_key = "Software\\ASIO\\MOD Desktop";
     LPCSTR clsid = "CLSID";
     LPCSTR wine_clsid = "{48D0C522-BFCC-45CC-8B84-17F25F33E6E9}";
     LPCSTR desc = "Description";
-    LPCSTR wine_desc = "MOD Desktop App";
+    LPCSTR wine_desc = "MOD Desktop";
     HKEY key;
     LONG rc;
 
@@ -567,7 +567,7 @@ HRESULT WINAPI DllRegisterServer(void)
  */
 static HRESULT unregister_driver(void)
 {
-    LPCSTR asio_key = "Software\\ASIO\\MOD Desktop App";
+    LPCSTR asio_key = "Software\\ASIO\\MOD Desktop";
 
     /* FIXME */
     return recursive_delete_keyA(HKEY_LOCAL_MACHINE, asio_key);

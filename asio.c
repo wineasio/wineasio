@@ -348,7 +348,7 @@ ULONG STDMETHODCALLTYPE Release(LPWINEASIO iface)
         if (This->input_channel)
             HeapFree(GetProcessHeap(), 0, This->input_channel);
     }
-    TRACE("MOD Desktop App terminated\n\n");
+    TRACE("MOD Desktop terminated\n\n");
     if (ref == 0)
         HeapFree(GetProcessHeap(), 0, This);
     return ref;
@@ -381,7 +381,7 @@ ASIOBool STDMETHODCALLTYPE Init(LPWINEASIO iface, void *sysRef)
 
     if (!jackbridge_is_ok())
     {
-        WARN("MOD Desktop App is not installed, cannot use ASIO driver\n");
+        WARN("MOD Desktop is not installed, cannot use ASIO driver\n");
         return ASIOFalse;
     }
 
@@ -389,7 +389,7 @@ ASIOBool STDMETHODCALLTYPE Init(LPWINEASIO iface, void *sysRef)
     // mlockall(MCL_FUTURE);
 
     // TODO allow any client name on mod-ui side
-    if (!(This->jack_client = jackbridge_client_open("mod-external", jack_options, &jack_status, "mod-desktop-app")))
+    if (!(This->jack_client = jackbridge_client_open("mod-external", jack_options, &jack_status, "mod-desktop")))
     {
         WARN("Unable to open a JACK client as: %s\n", "mod-external");
         return ASIOFalse;
@@ -464,7 +464,7 @@ ASIOBool STDMETHODCALLTYPE Init(LPWINEASIO iface, void *sysRef)
     }
 
     This->asio_driver_state = Initialized;
-    TRACE("MOD Desktop App 0.%.1f initialized\n",(float) This->asio_version / 10);
+    TRACE("MOD Desktop 0.%.1f initialized\n",(float) This->asio_version / 10);
     return ASIOTrue;
 }
 
@@ -477,7 +477,7 @@ DEFINE_THISCALL_WRAPPER(GetDriverName,8)
 void STDMETHODCALLTYPE GetDriverName(LPWINEASIO iface, char *name)
 {
     TRACE("iface: %p, name: %p\n", iface, name);
-    strcpy(name, "MOD Desktop App");
+    strcpy(name, "MOD Desktop");
     return;
 }
 
@@ -504,7 +504,7 @@ DEFINE_THISCALL_WRAPPER(GetErrorMessage,8)
 void STDMETHODCALLTYPE GetErrorMessage(LPWINEASIO iface, char *string)
 {
     TRACE("iface: %p, string: %p)\n", iface, string);
-    strcpy(string, "MOD Desktop App does not return error messages\n");
+    strcpy(string, "MOD Desktop does not return error messages\n");
     return;
 }
 
@@ -565,7 +565,7 @@ ASIOError STDMETHODCALLTYPE Start(LPWINEASIO iface)
     This->asio_buffer_index = This->asio_buffer_index ? 0 : 1;
 
     This->asio_driver_state = Running;
-    TRACE("MOD Desktop App successfully loaded\n");
+    TRACE("MOD Desktop successfully loaded\n");
     return ASE_OK;
 }
 
@@ -1000,11 +1000,11 @@ ASIOError STDMETHODCALLTYPE CreateBuffers(LPWINEASIO iface, ASIOBufferInfo *buff
     if (!jackbridge_activate(This->jack_client))
         return ASE_NotPresent;
 
-    /* connect to the mod-desktop-app io */
+    /* connect to the mod-desktop io */
     jackbridge_connect(This->jack_client, "mod-monitor:out_1", jackbridge_port_name(This->input_channel[0].port));
     jackbridge_connect(This->jack_client, "mod-monitor:out_2", jackbridge_port_name(This->input_channel[1].port));
 
-    // TODO define inputs from mod-desktop-app side
+    // TODO define inputs from mod-desktop side
     // jack_connect(This->jack_client, jack_port_name(This->output_channel[0].port), "");
     // jack_connect(This->jack_client, jack_port_name(This->output_channel[1].port), "");
 
@@ -1070,7 +1070,7 @@ ASIOError STDMETHODCALLTYPE ControlPanel(LPWINEASIO iface)
 {
     TRACE("iface: %p\n", iface);
 
-    HANDLE openEvent = OpenEventA(EVENT_MODIFY_STATE, false, "Global\\mod-desktop-app-open");
+    HANDLE openEvent = OpenEventA(EVENT_MODIFY_STATE, false, "Global\\mod-desktop-open");
 
     if (openEvent)
     {
