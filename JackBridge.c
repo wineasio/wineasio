@@ -312,18 +312,18 @@ static void jackbridge_init(JackBridge* const bridge)
     WCHAR *path2 = path;
     while (*path2++) {}
     --path2;
-    memcpy(path2,  L"\\MOD Desktop\\libjack64.dll", sizeof(WCHAR)*23);
+    memcpy(path2,  L"\\MOD Desktop\\libjack64.dll", sizeof(WCHAR)*27);
 
     const HANDLE lib = LoadLibraryW(path);
 
     if (lib == NULL)
     {
-        fwprintf(stderr, L"Failed to load MOD Desktop JACK '%ls'\n", path);
+        fprintf(stderr, "Failed to load MOD Desktop JACK '%ls'\n", path);
         return;
     }
     else
     {
-        fwprintf(stdout, L"MOD Desktop JACK '%ls' loaded successfully!\n", path);
+        fprintf(stdout, "MOD Desktop JACK '%ls' loaded successfully!\n", path);
     }
 
     #define JOIN(a, b) a ## b
