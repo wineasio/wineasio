@@ -41,7 +41,15 @@ for u in ${u32[@]}; do
 done
 
 # only continue past this point if wine64 command is available and prefix supports 64bit
-if ! command -v wine64 > /dev/null || [ ! -d "${WINEPREFIX}/drive_c/windows/syswow64" ]; then
+if [ ! -d "${WINEPREFIX}/drive_c/windows/syswow64" ]; then
+    exit 0
+fi
+
+if command -v wine64 >/dev/null 2>&1; then
+    WINE64="wine64"
+elif [ -e /usr/lib/wine/wine64 ]; then
+    WINE64="/usr/lib/wine/wine64"
+else
     exit 0
 fi
 
@@ -50,7 +58,7 @@ for u in ${u64[@]}; do
     w=$(echo ${u} | sed -e 's|/x86_64-unix/wineasio64.dll.so|/x86_64-windows/wineasio64.dll|g')
     if [ -e "${u}" ] && [ -e "${w}" ]; then
         cp -v "${w}" "${WINEPREFIX}/drive_c/windows/system32"
-        wine64 regsvr32 "${u}"
+        ${WINE64} regsvr32 "${u}"
         break
     fi
 done
