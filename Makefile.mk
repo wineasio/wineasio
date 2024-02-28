@@ -75,6 +75,7 @@ wineasio_dll_LDFLAGS  = -shared \
 			-L/opt/wine-staging/lib/wine \
 			-L/opt/wine-staging/lib$(M) \
 			-L/opt/wine-staging/lib$(M)/wine
+wineasio_dll_LDFLAGS  += -nostartfiles
 wineasio_dll_DLLS     = odbc32 \
 			ole32 \
 			winmm
