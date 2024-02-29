@@ -40,6 +40,13 @@ sudo cp build64/wineasio64.dll /usr/lib/x86_64-linux-gnu/wine/x86_64-windows/
 sudo cp build64/wineasio64.dll.so /usr/lib/x86_64-linux-gnu/wine/x86_64-unix/
 ```
 
+**
+NOTE:  
+Wine does not have consistent paths between different Linux distributions, these paths are only a hint and likely not what will work for you.  
+New versions of wine might also need to use `wineasio64.so` as name instead of `wineasio64.dll.so`.  
+It is up to the packager to figure out what works for the Wine version used on their specific distro.
+**
+
 #### EXTRAS
 
 For user convenience a `wineasio-register` script is included in this repo, if you are packaging WineASIO consider installing it as part of WineASIO.
