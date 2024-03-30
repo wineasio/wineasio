@@ -1,14 +1,14 @@
 #!/bin/bash
-
-# exit if any command fails
-set -e
+me=wineasio-register
+# exit if any command fails (commented so project-specific errors can be shown via echo)
+# set -e
 
 # read WINEPREFIX from environment, with fallback if unset
 WINEPREFIX=${WINEPREFIX:=~/.wine}
 
 # make sure the WINEPREFIX directory exists
 if [ ! -d "${WINEPREFIX}" ]; then
-    wineboot -u
+    wineboot -u || exit $?
 fi
 
 # define possible locations for wineasio DLLs
@@ -29,27 +29,32 @@ u64=(
 "/usr/lib64/wine/x86_64-unix/wineasio64.dll.so"
 "/usr/lib/x86_64-linux-gnu/wine/x86_64-unix/wineasio64.dll.so"
 )
-
+code=0
 # try to register 32bit DLL
+status32="not found"
 for u in ${u32[@]}; do
     w=$(echo ${u} | sed -e 's|/i386-unix/wineasio32.dll.so|/i386-windows/wineasio32.dll|g')
     if [ -e "${u}" ] && [ -e "${w}" ]; then
         cp -v "${w}" "${WINEPREFIX}/drive_c/windows/system32"
         regsvr32 "${u}"
+        code=$?
+        if [ $code -eq 0 ]; then
+            status32="registered"
+        else
+            status32="registration failed"
+        fi
         break
     fi
 done
+>&2 echo "[$me] 32-bit dll.so $status32"
+if [ $code -ne 0 ]; then exit $code; fi
+
+status64="not found"
 
 # only continue past this point if wine64 command is available and prefix supports 64bit
-if [ ! -d "${WINEPREFIX}/drive_c/windows/syswow64" ]; then
-    exit 0
-fi
-
-if command -v wine64 >/dev/null 2>&1; then
-    WINE64="wine64"
-elif [ -e /usr/lib/wine/wine64 ]; then
-    WINE64="/usr/lib/wine/wine64"
-else
+if ! command -v wine64 > /dev/null || [ ! -d "${WINEPREFIX}/drive_c/windows/syswow64" ]; then
+    status64="is not applicable (no wine64 and/or syswow64 was found)"
+    >&2 echo "[$me] 64-bit dll.so $status64"
     exit 0
 fi
 
@@ -58,7 +63,15 @@ for u in ${u64[@]}; do
     w=$(echo ${u} | sed -e 's|/x86_64-unix/wineasio64.dll.so|/x86_64-windows/wineasio64.dll|g')
     if [ -e "${u}" ] && [ -e "${w}" ]; then
         cp -v "${w}" "${WINEPREFIX}/drive_c/windows/system32"
-        ${WINE64} regsvr32 "${u}"
+        wine64 regsvr32 "${u}"
+        code=$?
+        if [ $code -eq 0 ]; then
+            status64="registered"
+        else
+            status64="registration failed"
+        fi
         break
     fi
 done
+>&2 echo "[$me] 64-bit dll.so $status64"
+exit $code
