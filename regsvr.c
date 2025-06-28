@@ -510,7 +510,7 @@ static struct regsvr_coclass const coclass_list[] = {
     {   &CLSID_WineASIO,
 	"WineASIO Object",
 	NULL,
-#ifdef NATIVE_INT64
+#ifdef _WIN64
 	"wineasio64.dll",
 #else
 	"wineasio32.dll",

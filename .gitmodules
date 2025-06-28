@@ -1,3 +1,0 @@
-[submodule "rtaudio"]
-	path = rtaudio
-	url = https://github.com/falkTX/rtaudio.git

@@ -42,11 +42,6 @@ INCLUDE_PATH         += -I/opt/wine-staging/include
 INCLUDE_PATH         += -I/opt/wine-staging/include/wine/windows
 LIBRARIES             = $(shell pkg-config --libs jack)
 
-# 64bit build needs an extra flag
-ifeq ($(M),64)
-CEXTRA               += -DNATIVE_INT64
-endif
-
 # Debug or Release
 ifeq ($(DEBUG),true)
 CEXTRA               += -O0 -DDEBUG -g -D__WINESRC__
@@ -89,7 +84,7 @@ C_SRCS                = $(wineasio_dll_C_SRCS)
 ### Generic targets
 
 all:
-build: rtaudio/include/asio.h $(DLLS:%=build$(M)/%)
+build: $(DLLS:%=build$(M)/%)
 
 ### Build rules
 
