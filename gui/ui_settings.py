@@ -18,9 +18,9 @@
 
 # ---------------------------------------------------------------------------------------------------------------------
 
-from PyQt5.QtCore import Qt, QCoreApplication, QMetaObject
-from PyQt5.QtWidgets import QCheckBox, QComboBox, QDialogButtonBox, QLabel, QGroupBox, QSpinBox
-from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QSpacerItem, QSizePolicy
+from PyQt6.QtCore import Qt, QCoreApplication, QMetaObject
+from PyQt6.QtWidgets import QCheckBox, QComboBox, QDialogButtonBox, QLabel, QGroupBox, QSpinBox
+from PyQt6.QtWidgets import QHBoxLayout, QVBoxLayout, QSpacerItem, QSizePolicy
 
 # ---------------------------------------------------------------------------------------------------------------------
 
@@ -39,7 +39,7 @@ class Ui_WineASIOSettings(object):
         self.layout_ports_in = QHBoxLayout()
         self.layout_ports_in.setObjectName("layout_ports_in")
         self.label_ports_in = QLabel(self.group_ports)
-        self.label_ports_in.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+        self.label_ports_in.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.label_ports_in.setObjectName("label_ports_in")
         self.layout_ports_in.addWidget(self.label_ports_in)
         self.sb_ports_in = QSpinBox(self.group_ports)
@@ -51,7 +51,7 @@ class Ui_WineASIOSettings(object):
         self.layout_ports_out = QHBoxLayout()
         self.layout_ports_out.setObjectName("layout_ports_out")
         self.label_ports_out = QLabel(self.group_ports)
-        self.label_ports_out.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+        self.label_ports_out.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.label_ports_out.setObjectName("label_ports_out")
         self.layout_ports_out.addWidget(self.label_ports_out)
         self.sb_ports_out = QSpinBox(self.group_ports)
@@ -63,7 +63,7 @@ class Ui_WineASIOSettings(object):
         self.verticalLayout_22.addLayout(self.layout_ports_out)
         self.layout_ports_connect_hw = QHBoxLayout()
         self.layout_ports_connect_hw.setObjectName("layout_ports_connect_hw")
-        spacerItem = QSpacerItem(150, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        spacerItem = QSpacerItem(150, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         self.layout_ports_connect_hw.addItem(spacerItem)
         self.cb_ports_connect_hw = QCheckBox(self.group_ports)
         self.cb_ports_connect_hw.setObjectName("cb_ports_connect_hw")
@@ -76,7 +76,7 @@ class Ui_WineASIOSettings(object):
         self.verticalLayout_23.setObjectName("verticalLayout_23")
         self.layout_jack_autostart = QHBoxLayout()
         self.layout_jack_autostart.setObjectName("layout_jack_autostart")
-        spacerItem1 = QSpacerItem(150, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        spacerItem1 = QSpacerItem(150, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         self.layout_jack_autostart.addItem(spacerItem1)
         self.cb_jack_autostart = QCheckBox(self.group_jack)
         self.cb_jack_autostart.setObjectName("cb_jack_autostart")
@@ -84,7 +84,7 @@ class Ui_WineASIOSettings(object):
         self.verticalLayout_23.addLayout(self.layout_jack_autostart)
         self.layout_jack_fixed_bsize = QHBoxLayout()
         self.layout_jack_fixed_bsize.setObjectName("layout_jack_fixed_bsize")
-        spacerItem2 = QSpacerItem(150, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        spacerItem2 = QSpacerItem(150, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         self.layout_jack_fixed_bsize.addItem(spacerItem2)
         self.cb_jack_fixed_bsize = QCheckBox(self.group_jack)
         self.cb_jack_fixed_bsize.setObjectName("cb_jack_fixed_bsize")
@@ -93,7 +93,7 @@ class Ui_WineASIOSettings(object):
         self.layout_jack_buffer_size = QHBoxLayout()
         self.layout_jack_buffer_size.setObjectName("layout_jack_buffer_size")
         self.label_jack_buffer_size = QLabel(self.group_jack)
-        self.label_jack_buffer_size.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+        self.label_jack_buffer_size.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.label_jack_buffer_size.setObjectName("label_jack_buffer_size")
         self.layout_jack_buffer_size.addWidget(self.label_jack_buffer_size)
         self.cb_jack_buffer_size = QComboBox(self.group_jack)
@@ -102,8 +102,8 @@ class Ui_WineASIOSettings(object):
         self.verticalLayout_23.addLayout(self.layout_jack_buffer_size)
         self.verticalLayout.addWidget(self.group_jack)
         self.buttonBox = QDialogButtonBox(WineASIOSettings)
-        self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel|QDialogButtonBox.Ok|QDialogButtonBox.RestoreDefaults)
+        self.buttonBox.setOrientation(Qt.Orientation.Horizontal)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.StandardButton.Cancel|QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.RestoreDefaults)
         self.buttonBox.setObjectName("buttonBox")
         self.verticalLayout.addWidget(self.buttonBox)
 

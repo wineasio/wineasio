@@ -49,7 +49,7 @@ sudo cp build64/wineasio64.dll.so /usr/lib/x86_64-linux-gnu/wine/x86_64-unix/
 
 For user convenience a `wineasio-register` script is included in this repo, if you are packaging WineASIO consider installing it as part of WineASIO.
 
-Additionally a control panel GUI is provided in this repository's `gui` subdir, which requires PyQt5 to build and run.  
+Additionally a control panel GUI is provided in this repository's `gui` subdir, which requires PyQt6 to build and run.  
 The WineASIO driver will use this GUI as the ASIO control panel.
 
 ### REGISTERING
