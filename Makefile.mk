@@ -44,7 +44,7 @@ LIBRARIES             = $(shell pkg-config --libs jack)
 
 # Debug or Release
 ifeq ($(DEBUG),true)
-CEXTRA               += -O0 -DDEBUG -g -D__WINESRC__
+CEXTRA               += -O0 -DDEBUG -g -D__WINESRC__ -v
 else
 CEXTRA               += -O2 -DNDEBUG -fvisibility=hidden
 endif
