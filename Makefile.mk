@@ -18,6 +18,7 @@ PREFIX                = /usr
 SRCDIR                = .
 DLLS                  = $(wineasio_dll_MODULE) $(wineasio_dll_MODULE).so
 
+PKG_CONFIG_PATH ?= /usr/lib$(M)/pkgconfig
 ### Tools
 
 CC        = gcc
@@ -29,7 +30,7 @@ WINECC    = winegcc
 CEXTRA                = -m$(M) -D_REENTRANT -fPIC -Wall -pipe
 CEXTRA               += -fno-strict-aliasing -Wdeclaration-after-statement -Wwrite-strings -Wpointer-arith
 CEXTRA               += -Werror=implicit-function-declaration
-CEXTRA               += $(shell pkg-config --cflags jack)
+CEXTRA               += $(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --cflags jack)
 RCEXTRA               =
 INCLUDE_PATH          = -I. -Irtaudio/include
 INCLUDE_PATH         += -I$(PREFIX)/include/wine
@@ -40,7 +41,7 @@ INCLUDE_PATH         += -I/opt/wine-stable/include
 INCLUDE_PATH         += -I/opt/wine-stable/include/wine/windows
 INCLUDE_PATH         += -I/opt/wine-staging/include
 INCLUDE_PATH         += -I/opt/wine-staging/include/wine/windows
-LIBRARIES             = $(shell pkg-config --libs jack)
+LIBRARIES             = $(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --libs jack)
 
 # Debug or Release
 ifeq ($(DEBUG),true)
