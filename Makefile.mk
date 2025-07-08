@@ -14,11 +14,12 @@ endif
 
 wineasio_dll_MODULE   = wineasio$(M).dll
 
-PREFIX                = /usr
-SRCDIR                = .
 DLLS                  = $(wineasio_dll_MODULE) $(wineasio_dll_MODULE).so
 
 PKG_CONFIG_PATH ?= /usr/lib$(M)/pkgconfig
+WINE_INCLUDE_PATH		?= /usr/include/wine
+WINE_LIBDIR ?= /usr/lib$(M)/wine
+
 ### Tools
 
 CC        = gcc
@@ -33,14 +34,8 @@ CEXTRA               += -Werror=implicit-function-declaration
 CEXTRA               += $(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --cflags jack)
 RCEXTRA               =
 INCLUDE_PATH          = -I. -Irtaudio/include
-INCLUDE_PATH         += -I$(PREFIX)/include/wine
-INCLUDE_PATH         += -I$(PREFIX)/include/wine/windows
-INCLUDE_PATH         += -I$(PREFIX)/include/wine-development
-INCLUDE_PATH         += -I$(PREFIX)/include/wine-development/wine/windows
-INCLUDE_PATH         += -I/opt/wine-stable/include
-INCLUDE_PATH         += -I/opt/wine-stable/include/wine/windows
-INCLUDE_PATH         += -I/opt/wine-staging/include
-INCLUDE_PATH         += -I/opt/wine-staging/include/wine/windows
+INCLUDE_PATH         += -I$(WINE_INCLUDE_PATH)
+INCLUDE_PATH         += -I$(WINE_INCLUDE_PATH)/windows
 LIBRARIES             = $(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --libs jack)
 
 # Debug or Release
@@ -59,17 +54,9 @@ wineasio_dll_LDFLAGS  = -shared \
 			-m$(M) \
 			wineasio.dll.spec \
 			-L/usr/lib$(M)/wine \
-			-L/usr/lib/wine \
-			-L/usr/lib/$(ARCH)-linux-gnu/wine \
-			-L/usr/lib/$(ARCH)-linux-gnu/wine-development \
-			-L/opt/wine-stable/lib \
-			-L/opt/wine-stable/lib/wine \
-			-L/opt/wine-stable/lib$(M) \
-			-L/opt/wine-stable/lib$(M)/wine \
-			-L/opt/wine-staging/lib \
-			-L/opt/wine-staging/lib/wine \
-			-L/opt/wine-staging/lib$(M) \
-			-L/opt/wine-staging/lib$(M)/wine
+			-L$(WINE_LIBDIR) \
+			-L$(WINE_LIBDIR)/$(ARCH)-unix \
+			-L$(WINE_LIBDIR)/$(ARCH)-windows
 wineasio_dll_DLLS     = odbc32 \
 			ole32 \
 			winmm
