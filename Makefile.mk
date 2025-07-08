@@ -56,7 +56,6 @@ wineasio_dll_C_SRCS   = asio.c \
 			regsvr.c
 wineasio_dll_LDFLAGS  = -shared \
 			-m$(M) \
-			-mnocygwin \
 			wineasio.dll.spec \
 			-L/usr/lib$(M)/wine \
 			-L/usr/lib/wine \
