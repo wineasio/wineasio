@@ -40,7 +40,6 @@ INCLUDE_PATH         += -I/opt/wine-stable/include
 INCLUDE_PATH         += -I/opt/wine-stable/include/wine/windows
 INCLUDE_PATH         += -I/opt/wine-staging/include
 INCLUDE_PATH         += -I/opt/wine-staging/include/wine/windows
-LIBRARIES             = $(shell pkg-config --libs jack)
 
 # Debug or Release
 ifeq ($(DEBUG),true)
@@ -52,6 +51,7 @@ endif
 ### wineasio.dll settings
 
 wineasio_dll_C_SRCS   = asio.c \
+			jackbridge.c \
 			main.c \
 			regsvr.c
 wineasio_dll_LDFLAGS  = -shared \
@@ -69,16 +69,8 @@ wineasio_dll_LDFLAGS  = -shared \
 			-L/opt/wine-staging/lib/wine \
 			-L/opt/wine-staging/lib$(M) \
 			-L/opt/wine-staging/lib$(M)/wine
-wineasio_dll_DLLS     = odbc32 \
-			ole32 \
-			winmm
-wineasio_dll_LIBRARIES = uuid
 
 wineasio_dll_OBJS     = $(wineasio_dll_C_SRCS:%.c=build$(M)/%.c.o)
-
-### Global source lists
-
-C_SRCS                = $(wineasio_dll_C_SRCS)
 
 ### Generic targets
 
@@ -101,5 +93,5 @@ build$(M)/$(wineasio_dll_MODULE): $(wineasio_dll_OBJS)
 	$(WINEBUILD) -m$(M) --dll --fake-module -E wineasio.dll.spec $^ -o $@
 
 build$(M)/$(wineasio_dll_MODULE).so: $(wineasio_dll_OBJS)
-	$(WINECC) $^ $(wineasio_dll_LDFLAGS) $(LIBRARIES) \
-		$(wineasio_dll_DLLS:%=-l%) $(wineasio_dll_LIBRARIES:%=-l%) -o $@
+	$(WINECC) $^ $(wineasio_dll_LDFLAGS) \
+		-lodbc32 -lole32 -luuid -lwinmm -o $@
