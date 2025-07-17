@@ -31,23 +31,25 @@ CEXTRA               += -Werror=implicit-function-declaration
 RCEXTRA               =
 INCLUDE_PATH          = -I.
 
-INCLUDE_PATH         += -I$(PREFIX)/include/wine
-INCLUDE_PATH         += -I$(PREFIX)/include/wine/windows
-INCLUDE_PATH         += -I$(PREFIX)/include/wine-development
-INCLUDE_PATH         += -I$(PREFIX)/include/wine-development/wine/windows
-INCLUDE_PATH         += -I/opt/wine-stable/include
-INCLUDE_PATH         += -I/opt/wine-stable/include/wine/windows
-INCLUDE_PATH         += -I/opt/wine-staging/include
-INCLUDE_PATH         += -I/opt/wine-staging/include/wine/windows
-
-# Debug or Release
 ifeq ($(DEBUG),true)
 CEXTRA               += -O0 -DDEBUG -g -D__WINESRC__
 else
 CEXTRA               += -O2 -DNDEBUG -fvisibility=hidden
 endif
 
-### wineasio.dll settings
+ifneq ($(WINEBUILD_INCLUDEDIR),)
+INCLUDE_PATH         += -I$(WINEBUILD_INCLUDEDIR)
+else
+INCLUDE_PATH         += \
+			-I$(PREFIX)/include/wine \
+			-I$(PREFIX)/include/wine/windows \
+			-I$(PREFIX)/include/wine-development \
+			-I$(PREFIX)/include/wine-development/wine/windows \
+			-I/opt/wine-stable/include \
+			-I/opt/wine-stable/include/wine/windows \
+			-I/opt/wine-staging/include \
+			-I/opt/wine-staging/include/wine/windows
+endif
 
 wineasio_dll_C_SRCS   = asio.c \
 			jackbridge.c \
@@ -57,6 +59,9 @@ wineasio_dll_LDFLAGS  = -shared \
 			-m$(M) \
 			wineasio.dll.spec
 
+ifneq ($(WINEBUILD_LIBDIR),)
+wineasio_dll_LDFLAGS += -L$(WINEBUILD_LIBDIR)
+else
 wineasio_dll_LDFLAGS += \
 			-L/usr/lib$(M)/wine \
 			-L/usr/lib/wine \
@@ -70,6 +75,7 @@ wineasio_dll_LDFLAGS += \
 			-L/opt/wine-staging/lib/wine \
 			-L/opt/wine-staging/lib$(M) \
 			-L/opt/wine-staging/lib$(M)/wine
+endif
 
 wineasio_dll_OBJS     = $(wineasio_dll_C_SRCS:%.c=build$(M)/%.c.o)
 
