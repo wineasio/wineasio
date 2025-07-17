@@ -17,6 +17,7 @@
 #include "jackbridge.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <windows.h>
 
