@@ -123,6 +123,11 @@ that overrides the JACK client name derived from the program name.
 
 ### CHANGE LOG
 
+#### 1.3.0 WIP
+* 17-JUL-2025: Load libjack.so.0 dynamically at runtime, removing build dep
+* 17-JUL-2025: Remove useless -mnocygwin flag
+* 28-JUN-2025: Remove dependency on asio headers
+
 #### 1.2.0
 * 29-SEP-2023: Fix compatibility with Wine > 8
 * 29-SEP-2023: Add wineasio-register script for simplifying driver registration
