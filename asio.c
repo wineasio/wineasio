@@ -384,7 +384,7 @@ HIDDEN ULONG STDMETHODCALLTYPE AddRef(LPWINEASIO iface)
     IWineASIOImpl   *This = (IWineASIOImpl *)iface;
     ULONG           ref = InterlockedIncrement(&(This->ref));
 
-    TRACE("iface: %p, ref count is %d\n", iface, ref);
+    TRACE("iface: %p, ref count is %u\n", iface, (unsigned)ref);
     return ref;
 }
 
@@ -400,7 +400,7 @@ HIDDEN ULONG STDMETHODCALLTYPE Release(LPWINEASIO iface)
     IWineASIOImpl   *This = (IWineASIOImpl *)iface;
     ULONG            ref = InterlockedDecrement(&This->ref);
 
-    TRACE("iface: %p, ref count is %d\n", iface, ref);
+    TRACE("iface: %p, ref count is %u\n", iface, (unsigned)ref);
 
     if (This->host_driver_state == Running)
         Stop(iface);
@@ -712,7 +712,7 @@ HIDDEN LONG STDMETHODCALLTYPE GetLatencies(LPWINEASIO iface, LONG *inputLatency,
     *inputLatency = range.max;
     jackbridge_port_get_latency_range(This->output_channel[0].port, JackPlaybackLatency, &range);
     *outputLatency = range.max;
-    TRACE("iface: %p, input latency: %d, output latency: %d\n", iface, *inputLatency, *outputLatency);
+    TRACE("iface: %p, input latency: %d, output latency: %d\n", iface, (int)*inputLatency, (int)*outputLatency);
 
     return 0;
 }
@@ -738,7 +738,7 @@ HIDDEN LONG STDMETHODCALLTYPE GetBufferSize(LPWINEASIO iface, LONG *minSize, LON
     {
         *minSize = *maxSize = *preferredSize = This->host_current_buffersize;
         *granularity = 0;
-        TRACE("Buffersize fixed at %i\n", This->host_current_buffersize);
+        TRACE("Buffersize fixed at %d\n", (int)This->host_current_buffersize);
         return 0;
     }
 
@@ -746,8 +746,8 @@ HIDDEN LONG STDMETHODCALLTYPE GetBufferSize(LPWINEASIO iface, LONG *minSize, LON
     *maxSize = WINEASIO_MAXIMUM_BUFFERSIZE;
     *preferredSize = This->wineasio_preferred_buffersize;
     *granularity = -1;
-    TRACE("The host can control buffersize\nMinimum: %i, maximum: %i, preferred: %i, granularity: %i, current: %i\n",
-          *minSize, *maxSize, *preferredSize, *granularity, This->host_current_buffersize);
+    TRACE("The host can control buffersize\nMinimum: %d, maximum: %d, preferred: %d, granularity: %d, current: %d\n",
+          (int)*minSize, (int)*maxSize, (int)*preferredSize, (int)*granularity, (int)This->host_current_buffersize);
     return 0;
 }
 
@@ -850,7 +850,7 @@ HIDDEN LONG STDMETHODCALLTYPE GetClockSources(LPWINEASIO iface, void *clocks, LO
 DEFINE_THISCALL_WRAPPER(SetClockSource,8)
 HIDDEN LONG STDMETHODCALLTYPE SetClockSource(LPWINEASIO iface, LONG index)
 {
-    TRACE("iface: %p, index: %i\n", iface, index);
+    TRACE("iface: %p, index: %d\n", iface, (int)index);
 
     if (index != 0)
         return -1000;
@@ -931,7 +931,7 @@ HIDDEN LONG STDMETHODCALLTYPE CreateBuffers(LPWINEASIO iface, BufferInformation 
     BufferInformation  *bufferInfoPerChannel = bufferInfo;
     int             i, j, k;
 
-    TRACE("iface: %p, bufferInfo: %p, numChannels: %i, bufferSize: %i, callbacks: %p\n", iface, bufferInfo, (int)numChannels, (int)bufferSize, callbacks);
+    TRACE("iface: %p, bufferInfo: %p, numChannels: %d, bufferSize: %d, callbacks: %p\n", iface, bufferInfo, (int)numChannels, (int)bufferSize, callbacks);
 
     if (This->host_driver_state != Initialized)
         return -1000;
@@ -965,7 +965,7 @@ HIDDEN LONG STDMETHODCALLTYPE CreateBuffers(LPWINEASIO iface, BufferInformation 
     {
         if (This->host_current_buffersize != bufferSize)
             return -997;
-        TRACE("Buffersize fixed at %i\n", (int)This->host_current_buffersize);
+        TRACE("Buffersize fixed at %d\n", (int)This->host_current_buffersize);
     }
     else
     { /* fail if not a power of two and if out of range */
@@ -973,24 +973,24 @@ HIDDEN LONG STDMETHODCALLTYPE CreateBuffers(LPWINEASIO iface, BufferInformation 
                 && bufferSize >= WINEASIO_MINIMUM_BUFFERSIZE
                 && bufferSize <= WINEASIO_MAXIMUM_BUFFERSIZE))
         {
-            WARN("Invalid buffersize %i requested\n", (int)bufferSize);
+            WARN("Invalid buffersize %d requested\n", (int)bufferSize);
             return -997;
         }
         else
         {
             if (This->host_current_buffersize == bufferSize)
             {
-                TRACE("Buffer size already set to %i\n", (int)This->host_current_buffersize);
+                TRACE("Buffer size already set to %d\n", (int)This->host_current_buffersize);
             }
             else
             {
                 This->host_current_buffersize = bufferSize;
                 if (jackbridge_set_buffer_size(This->jack_client, This->host_current_buffersize))
                 {
-                    WARN("JACK is unable to set buffersize to %i\n", (int)This->host_current_buffersize);
+                    WARN("JACK is unable to set buffersize to %d\n", (int)This->host_current_buffersize);
                     return -999;
                 }
-                TRACE("Buffer size changed to %i\n", (int)This->host_current_buffersize);
+                TRACE("Buffer size changed to %d\n", (int)This->host_current_buffersize);
             }
         }
     }
@@ -1052,7 +1052,7 @@ HIDDEN LONG STDMETHODCALLTYPE CreateBuffers(LPWINEASIO iface, BufferInformation 
             /* TRACE("ASIO audio buffer for channel %i as output %li created\n", i, This->host_active_outputs); */
         }
     }
-    TRACE("%i audio channels initialized\n", This->host_active_inputs + This->host_active_outputs);
+    TRACE("%d audio channels initialized\n", (int)(This->host_active_inputs + This->host_active_outputs));
 
     if (!jackbridge_activate(This->jack_client))
         return -1000;
@@ -1154,7 +1154,7 @@ HIDDEN LONG STDMETHODCALLTYPE Future(LPWINEASIO iface, LONG selector, void *opt)
 {
     IWineASIOImpl           *This = (IWineASIOImpl *) iface;
 
-    TRACE("iface: %p, selector: %i, opt: %p\n", iface, selector, opt);
+    TRACE("iface: %p, selector: %d, opt: %p\n", iface, (int)selector, opt);
 
     switch (selector)
     {
