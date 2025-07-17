@@ -14,9 +14,8 @@ endif
 
 wineasio_dll_MODULE   = wineasio$(M).dll
 
-PREFIX                = /usr
-SRCDIR                = .
-DLLS                  = $(wineasio_dll_MODULE) $(wineasio_dll_MODULE).so
+PREFIX = /usr
+DLLS   = $(wineasio_dll_MODULE) $(wineasio_dll_MODULE).so
 
 ### Tools
 
@@ -29,9 +28,9 @@ WINECC    = winegcc
 CEXTRA                = -m$(M) -D_REENTRANT -fPIC -Wall -pipe
 CEXTRA               += -fno-strict-aliasing -Wdeclaration-after-statement -Wwrite-strings -Wpointer-arith
 CEXTRA               += -Werror=implicit-function-declaration
-CEXTRA               += $(shell pkg-config --cflags jack)
 RCEXTRA               =
-INCLUDE_PATH          = -I. -Irtaudio/include
+INCLUDE_PATH          = -I.
+
 INCLUDE_PATH         += -I$(PREFIX)/include/wine
 INCLUDE_PATH         += -I$(PREFIX)/include/wine/windows
 INCLUDE_PATH         += -I$(PREFIX)/include/wine-development
@@ -56,7 +55,9 @@ wineasio_dll_C_SRCS   = asio.c \
 			regsvr.c
 wineasio_dll_LDFLAGS  = -shared \
 			-m$(M) \
-			wineasio.dll.spec \
+			wineasio.dll.spec
+
+wineasio_dll_LDFLAGS += \
 			-L/usr/lib$(M)/wine \
 			-L/usr/lib/wine \
 			-L/usr/lib/$(ARCH)-linux-gnu/wine \
