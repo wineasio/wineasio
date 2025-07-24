@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # WineASIO Settings GUI
-# Copyright (C) 2020 Filipe Coelho <falktx@falktx.com>
+# Copyright (C) 2020-2025 Filipe Coelho <falktx@falktx.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,8 +21,15 @@
 import os
 import sys
 
-from PyQt5.QtCore import pyqtSlot, QDir
-from PyQt5.QtWidgets import QApplication, QDialog, QDialogButtonBox
+try:
+    from PyQt6.QtCore import pyqtSlot, QDir
+    from PyQt6.QtWidgets import QApplication, QDialog, QDialogButtonBox
+    QDialogButtonBox.RestoreDefaults = QDialogButtonBox.StandardButton.RestoreDefaults
+    useQt6 = True
+except ImportError:
+    from PyQt5.QtCore import pyqtSlot, QDir
+    from PyQt5.QtWidgets import QApplication, QDialog, QDialogButtonBox
+    useQt6 = False
 
 # ---------------------------------------------------------------------------------------------------------------------
 
@@ -38,7 +45,7 @@ WINEPREFIX = os.getenv("WINEPREFIX")
 if not WINEPREFIX:
     WINEPREFIX = os.path.join(HOME, ".wine")
 
-WINEASIO_PREFIX = "HKEY_CURRENT_USER\Software\Wine\WineASIO"
+WINEASIO_PREFIX = "HKEY_CURRENT_USER\\Software\\Wine\\WineASIO"
 
 # ---------------------------------------------------------------------------------------------------------------------
 
@@ -137,7 +144,7 @@ class WineASIOSettingsDialog(QDialog, Ui_WineASIOSettings):
     def slot_saveSettings(self):
         REGFILE  = 'REGEDIT4\n'
         REGFILE += '\n'
-        REGFILE += '[HKEY_CURRENT_USER\Software\Wine\WineASIO]\n'
+        REGFILE += '[HKEY_CURRENT_USER\\Software\\Wine\\WineASIO]\n'
         REGFILE += '"Autostart server"=dword:0000000%i\n' % int(1 if self.cb_jack_autostart.isChecked() else 0)
         REGFILE += '"Connect to hardware"=dword:0000000%i\n' % int(1 if self.cb_ports_connect_hw.isChecked() else 0)
         REGFILE += '"Fixed buffersize"=dword:0000000%i\n' % int(1 if self.cb_jack_fixed_bsize.isChecked() else 0)
@@ -164,6 +171,7 @@ if __name__ == '__main__':
     gui.show()
 
     # Exit properly
-    sys.exit(app.exec_())
+    ret = app.exec() if useQt6 else app.exec_()
+    sys.exit(ret)
 
 # ---------------------------------------------------------------------------------------------------------------------

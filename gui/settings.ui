@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>WineASIO Settings</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -180,8 +180,9 @@ Default is off</string>
         <item>
          <widget class="QCheckBox" name="cb_jack_fixed_bsize">
           <property name="toolTip">
-           <string>When on, an asio app will be able to change the jack buffer size.
-Default is off</string>
+           <string>When on: ASIO applications will respect the current JACK buffer size
+When off: ASIO applications can change the JACK buffer size
+Default is on</string>
           </property>
           <property name="text">
            <string>Fixed buffersize</string>
