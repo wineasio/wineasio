@@ -9,7 +9,7 @@ RUN dpkg --add-architecture i386
 RUN apt-get update -qq && apt-get upgrade -qqy && apt-get clean
 
 # install packages needed for build
-RUN apt-get install -qqy --no-install-recommends ca-certificates gcc-multilib git libjack-jackd2-dev libjack-jackd2-dev:i386 make openssl pkg-config wget && \
+RUN apt-get install -qqy --no-install-recommends ca-certificates gcc-multilib git make openssl wget && \
     apt-get clean
 
 # install newer wine
